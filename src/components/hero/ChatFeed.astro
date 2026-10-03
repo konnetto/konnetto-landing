@@ -427,7 +427,7 @@ function sampleOf<K extends ChatMessageData['kind']>(kind: K) {
       const container = row.querySelector<HTMLElement>('[data-reactions]')!;
       const buttons = [...container.querySelectorAll<HTMLElement>('.react')];
       const present = new Set(buttons.map((button) => button.dataset.stickerId));
-      const fresh = stickers.filter((sticker) => !present.has(sticker.id));
+      const fresh = stickers.filter((sticker) => !present.has(sticker.id) && !('randomReaction' in sticker && sticker.randomReaction === false));
 
       if (row.dataset.kind === 'text' && buttons.length < 3 && fresh.length && Math.random() < chatConfig.newReactionChance) {
         const button = makeReaction({ stickerId: pick(fresh).id, count: 1 });

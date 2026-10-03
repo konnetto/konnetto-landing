@@ -12,6 +12,8 @@ export interface Sticker {
   /** Nama reaksi gaya kode, tampil di popup "siapa yang bereaksi". */
   reactName: string;
   url: string;
+  /** false = tidak pernah ditambahkan sebagai reaksi acak di chat (dipasang manual saja). */
+  randomReaction?: boolean;
 }
 
 /** Ukuran asli file sticker (px). */
@@ -24,13 +26,16 @@ export const stickers = [
   { id: 'spoiler', label: 'JANGAN SPOILER', reactName: 'jangan_spoiler', url: asset('stickers/spoiler.webp') },
   { id: 'wkwkwk', label: 'WKWKWK', reactName: 'wkwkwk', url: asset('stickers/wkwkwk.webp') },
   { id: 'oshiku', label: 'OSHI-KU', reactName: 'oshi_ku', url: asset('stickers/oshiku.webp') },
+  // Khusus ajakan acara (post nobar di mading): tidak muncul acak di chat.
+  { id: 'ikut', label: 'IKUT!', reactName: 'ikut', url: asset('stickers/ikut.webp'), randomReaction: false },
 ] as const satisfies readonly Sticker[];
 
 export type StickerId = (typeof stickers)[number]['id'];
 
 /**
- * Custom emoji untuk caption post di mading (":ikut:"), terpisah dari `stickers`
- * supaya tidak ikut muncul sebagai reaksi acak di chat. Sumber: brand/stickers/ (diperkecil ke 108px webp, 3x ukuran tampil).
+ * Custom emoji untuk caption post di mading (tulis ":ikut:" di caption). Saat ini tidak dipakai:
+ * sticker bergambar terlalu ramai di ukuran teks, jadi IKUT! dipasang sebagai reaksi. Untuk custom
+ * emoji, pakai gambar sederhana yang tetap terbaca di ~24px. Sumber: brand/stickers/ (diperkecil ke 108px webp, 3x ukuran tampil).
  */
 export const postStickers = {
   ikut: { id: 'ikut', label: 'IKUT!', reactName: 'ikut', url: asset('stickers/ikut.webp') },

@@ -78,8 +78,10 @@ export const madingPosts: MadingPost[] = [
     authorId: 'wibu_akut404',
     ago: '5 jam',
     // Tempat fiktif di area nyata (Blok M, 'Little Tokyo' Jakarta). Ganti kalau sudah ada venue beneran.
-    caption: 'yang mau nobar ep 13 bareng angkat tangan :ikut: sabtu jam 7 malem di Kotatsu Cafe, Blok M, lokasinya udah gw pin di map. kursi cuma 20, daftar di tab aktivitas sebelum abis. telat = nonton sendirian di kos 😭',
+    caption: 'yang mau nobar ep 13 bareng angkat tangan! sabtu jam 7 malem di Kotatsu Cafe, Blok M, lokasinya udah gw pin di map. kursi cuma 20, daftar di tab aktivitas sebelum abis. telat = nonton sendirian di kos 😭',
+    // IKUT! sebagai reaksi (bukan emoji di kalimat): jumlah orang yang 'angkat tangan'.
     reactions: [
+      { stickerId: 'ikut', count: 18 },
       { stickerId: 'gas', count: 23 },
       { stickerId: 'oshiku', count: 4 },
     ],
