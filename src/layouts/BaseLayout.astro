@@ -1,0 +1,102 @@
+---
+/**
+ * Layout dasar untuk semua halaman: <head> lengkap (SEO, Open Graph, favicon,
+ * font, analytics) dan kerangka <body>.
+ *
+ * Pemakaian:
+ *   <BaseLayout title="..." description="...">
+ *     ...isi halaman...
+ *   </BaseLayout>
+ */
+import '../styles/global.css';
+import { analyticsConfig } from '../lib/config';
+
+interface Props {
+  title: string;
+  description: string;
+  /** Path canonical, misalnya "/". Default: path halaman ini sendiri. */
+  canonicalPath?: string;
+  /** Path gambar OG relatif ke folder public/. */
+  ogImage?: string;
+  /** true untuk halaman yang tidak perlu diindeks mesin pencari. */
+  noindex?: boolean;
+}
+
+const { title, description, canonicalPath = Astro.url.pathname, ogImage = '/og-image.png', noindex = false } = Astro.props;
+
+// Astro.site berasal dari `site` di astro.config.mjs (PUBLIC_SITE_URL).
+// OG image dan canonical wajib URL absolut.
+const site = Astro.site ?? new URL('https://konnetto.id');
+const canonicalUrl = new URL(canonicalPath, site).href;
+const ogImageUrl = new URL(ogImage, site).href;
+
+const { umamiWebsiteId, umamiScriptUrl } = analyticsConfig;
+
+// Naikkan angka ini setiap kali favicon diganti, supaya browser tidak memakai versi lama dari cache.
+const ICON_VERSION = '2';
+---
+
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonicalUrl} />
+    {noindex && <meta name="robots" content="noindex" />}
+    <meta name="theme-color" content="#0F0B1A" />
+    <meta name="generator" content={Astro.generator} />
+
+    <!-- Favicon (dibuat dari brand/konnetto-mark.png dengan npm run icons) -->
+    <link rel="icon" href={`/favicon.ico?v=${ICON_VERSION}`} sizes="48x48" />
+    <link rel="icon" type="image/png" sizes="32x32" href={`/favicon-32.png?v=${ICON_VERSION}`} />
+    <link rel="icon" type="image/png" sizes="48x48" href={`/favicon-48.png?v=${ICON_VERSION}`} />
+    <link rel="apple-touch-icon" sizes="180x180" href={`/apple-touch-icon.png?v=${ICON_VERSION}`} />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- Open Graph (preview saat link dibagikan di WhatsApp, Discord, dll.) -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="Konnetto" />
+    <meta property="og:locale" content="id_ID" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonicalUrl} />
+    <meta property="og:image" content={ogImageUrl} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Konnetto, rumah untuk otaku Indonesia" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={title} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={ogImageUrl} />
+
+    <!--
+      Font di-host sendiri (public/fonts, @font-face di global.css).
+      Preload dua font yang langsung terlihat di layar pertama supaya teks tidak "loncat".
+      M PLUS Rounded 1c (kana di footer) tidak di-preload: sudah dipangkas jadi ~1.5KB dan hanya dipakai di footer.
+    -->
+    <link rel="preload" href="/fonts/Unbounded-Variable-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/fonts/PlusJakartaSans-Variable-latin.woff2" as="font" type="font/woff2" crossorigin />
+
+    <!--
+      Umami analytics. Hanya dimuat kalau PUBLIC_UMAMI_WEBSITE_ID diisi.
+      is:inline = Astro tidak mem-bundle script ini, dirender apa adanya.
+    -->
+    {umamiWebsiteId && <script is:inline defer src={umamiScriptUrl} data-website-id={umamiWebsiteId} />}
+
+    <slot name="head" />
+  </head>
+  <!-- class="kn": wrapper wajib design system (font, warna teks, latar dari bundle.css) -->
+  <body class="kn">
+    <!-- Link untuk pengguna keyboard/screen reader: langsung lompat ke konten -->
+    <a
+      href="#konten"
+      class="kn-btn kn-btn--paper sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[200]"
+    >
+      Lewati ke konten
+    </a>
+
+    <slot />
+  </body>
+</html>

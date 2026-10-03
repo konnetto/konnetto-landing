@@ -1,0 +1,423 @@
+---
+/**
+ * Lightbox: gambar atau sticker ukuran besar dengan zoom (artboard Versi B).
+ * Dipasang SEKALI per halaman (di pages/index.astro). Tombol apa pun membukanya lewat
+ * atribut data:
+ *
+ *   <button data-lightbox-src="..." data-lightbox-alt="..."
+ *           data-lightbox-width="800" data-lightbox-height="600"
+ *           data-lightbox-sender="konnetto.official" data-lightbox-caption="..."
+ *           data-lightbox-sticker>   ← opsional, untuk sticker (tanpa bingkai, zoom 1.4x)
+ *
+ * Perilaku:
+ *  - Buka: gambar "terbang" dari thumbnail ke tengah layar (0.23 detik), latar gelap blur.
+ *  - Zoom: tombol kaca pembesar, klik dua kali, cubit (layar sentuh), atau tombol + / − / 0.
+ *    Saat di-zoom, gambar bisa digeser.
+ *  - Tutup: tombol ✕, Escape, klik area gelap, atau (layar sentuh) tarik gambar ke bawah.
+ *    Gambar terbang kembali ke thumbnail, lalu fokus kembali ke tombol pembukanya.
+ *  - Scroll halaman dikunci selama terbuka; animasi hero berhenti (event overlay).
+ *  - Reduced motion: tanpa animasi terbang.
+ *
+ * Memakai <dialog> + showModal(): fokus terkunci di dalam dialog dan konten di belakangnya inert.
+ */
+---
+
+<dialog class="lb" data-lightbox aria-label="Pratinjau gambar">
+  <div class="lb-tools">
+    <button type="button" class="lb-btn" data-lb-zoom aria-pressed="false" aria-label="Perbesar gambar">
+      <svg class="lb-ico-in" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2M11 8v6M8 11h6"></path></svg>
+      <svg class="lb-ico-out" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"></circle><path d="M20 20l-4.2-4.2M8 11h6"></path></svg>
+    </button>
+    <button type="button" class="lb-btn" data-lb-close aria-label="Tutup pratinjau" autofocus>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"></path></svg>
+    </button>
+  </div>
+  <div class="lb-fly" data-lb-fly>
+    <img class="lb-img" data-lb-img alt="" draggable="false" />
+  </div>
+  <p class="lb-cap" data-lb-cap><b data-lb-sender></b><span data-lb-caption></span></p>
+</dialog>
+
+<style>
+  /* Dialog memenuhi layar; latar gelap diatur lewat --dim (0 saat terbang, 0.8 saat terbuka) */
+  .lb {
+    --dim: 0.8;
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100dvh;
+    max-width: none;
+    max-height: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    overflow: hidden;
+    color: var(--ink);
+    background: rgb(6 3 14 / var(--dim));
+    backdrop-filter: blur(6px);
+    transition: background-color 0.23s ease;
+  }
+  .lb::backdrop {
+    background: transparent;
+  }
+  .lb.is-from {
+    --dim: 0;
+    backdrop-filter: none;
+  }
+
+  .lb-tools {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    z-index: 2;
+    display: flex;
+    gap: 10px;
+    transition: opacity 0.2s ease;
+  }
+  .lb-btn {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: rgb(15 11 26 / 0.78);
+    color: var(--ink);
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgb(0 0 0 / 0.35);
+    transition: background-color 0.15s ease;
+  }
+  .lb-btn:hover {
+    background: var(--primary);
+  }
+  .lb-btn svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .lb-ico-out,
+  [aria-pressed='true'] .lb-ico-in {
+    display: none;
+  }
+  [aria-pressed='true'] .lb-ico-out {
+    display: block;
+  }
+
+  /* Kotak gambar: posisi akhir di tengah, dihitung script. transform = animasi terbang. */
+  .lb-fly {
+    position: absolute;
+    transform-origin: 0 0;
+    transition:
+      transform 0.23s cubic-bezier(0.2, 0.8, 0.3, 1),
+      opacity 0.2s ease;
+    touch-action: none;
+  }
+  .lb-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 10px;
+    box-shadow: 0 24px 60px rgb(0 0 0 / 0.5);
+    transition: transform 0.2s ease;
+    cursor: zoom-in;
+    user-select: none;
+    touch-action: none;
+    -webkit-user-drag: none;
+  }
+  .lb-img.is-zoomed {
+    cursor: grab;
+  }
+  .lb-img.is-drag {
+    transition: none;
+    cursor: grabbing;
+  }
+  .lb-img.is-sticker {
+    box-shadow: none;
+    border-radius: 0;
+    filter: drop-shadow(0 18px 40px rgb(0 0 0 / 0.5));
+  }
+
+  .lb-cap {
+    position: absolute;
+    left: 50%;
+    bottom: 28px;
+    z-index: 2;
+    box-sizing: border-box;
+    max-width: min(720px, 88%);
+    margin: 0;
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    padding: 10px 16px;
+    border-radius: 14px;
+    background: rgb(15 11 26 / 0.78);
+    font: 500 14px/20px var(--font-sans);
+    transform: translateX(-50%);
+    transition: opacity 0.2s ease;
+  }
+  .lb-cap b {
+    flex-shrink: 0;
+    font-weight: 800;
+    color: var(--accent);
+  }
+  .lb-cap span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .lb.is-from .lb-tools,
+  .lb.is-from .lb-cap {
+    opacity: 0;
+  }
+</style>
+
+<script>
+  import { canHover, prefersReducedMotion } from '../../lib/motion';
+  import { EVENTS_UI, emit } from '../../lib/events';
+
+  const dialog = document.querySelector<HTMLDialogElement>('[data-lightbox]');
+  if (dialog) setupLightbox(dialog);
+
+  function setupLightbox(dialog: HTMLDialogElement) {
+    const fly = dialog.querySelector<HTMLElement>('[data-lb-fly]')!;
+    const img = dialog.querySelector<HTMLImageElement>('[data-lb-img]')!;
+    const zoomButton = dialog.querySelector<HTMLButtonElement>('[data-lb-zoom]')!;
+    const closeButton = dialog.querySelector<HTMLButtonElement>('[data-lb-close]')!;
+    const sender = dialog.querySelector<HTMLElement>('[data-lb-sender]')!;
+    const caption = dialog.querySelector<HTMLElement>('[data-lb-caption]')!;
+
+    const CLOSE_MS = 240;
+    const SWIPE_CLOSE = 110;
+
+    type Rect = { x: number; y: number; w: number; h: number };
+    let opener: HTMLElement | null = null;
+    let target: Rect = { x: 0, y: 0, w: 1, h: 1 };
+    let isSticker = false;
+    let closing = false;
+    let zoom = 1;
+    let tx = 0;
+    let ty = 0;
+
+    const maxZoom = () => (isSticker ? 1.4 : 3);
+    const toggleZoomLevel = () => (isSticker ? 1.4 : 2.5);
+
+    // ---- Posisi dan tampilan ------------------------------------------------
+
+    function originRect(): Rect | null {
+      const source = opener?.isConnected ? (opener.querySelector('img') ?? opener) : null;
+      if (!source) return null;
+      const r = source.getBoundingClientRect();
+      return { x: r.left, y: r.top, w: r.width || 1, h: r.height || 1 };
+    }
+
+    /** Transform yang menaruh kotak gambar tepat di atas thumbnail (titik awal/akhir terbang). */
+    function flyFromOrigin(): string {
+      const o = originRect();
+      if (!o) return 'none';
+      return `translate(${o.x - target.x}px, ${o.y - target.y}px) scale(${o.w / target.w})`;
+    }
+
+    function render({ dragging = false } = {}) {
+      img.style.transform = `translate(${tx}px, ${ty}px) scale(${zoom})`;
+      img.classList.toggle('is-zoomed', zoom > 1);
+      img.classList.toggle('is-drag', dragging);
+      const zoomed = zoom > 1;
+      zoomButton.setAttribute('aria-pressed', String(zoomed));
+      zoomButton.setAttribute('aria-label', zoomed ? 'Perkecil gambar' : 'Perbesar gambar');
+      // Tarik ke bawah (tanpa zoom) membuat latar makin terang, tanda akan tertutup.
+      const dim = zoom > 1 ? 0.8 : Math.max(0.2, 0.8 - Math.max(0, ty) / 450);
+      if (!dialog.classList.contains('is-from')) dialog.style.setProperty('--dim', String(dim));
+    }
+
+    function setZoom(value: number) {
+      zoom = Math.max(1, Math.min(maxZoom(), value));
+      tx = 0;
+      ty = 0;
+      render();
+    }
+
+    // ---- Buka / tutup -------------------------------------------------------
+
+    function open(trigger: HTMLElement) {
+      const src = trigger.dataset.lightboxSrc;
+      if (!src) return;
+      opener = trigger;
+      closing = false;
+      isSticker = trigger.hasAttribute('data-lightbox-sticker');
+      const thumb = trigger.querySelector('img');
+
+      // Ukuran akhir: muat di layar (lebar 90% desktop / 100% sentuh, tinggi 85% dikurangi ruang caption)
+      const touch = !canHover();
+      const W = window.innerWidth;
+      const H = window.innerHeight;
+      let w: number;
+      let h: number;
+      if (isSticker) {
+        w = h = Math.min(300, W * 0.8);
+      } else {
+        const nw = Number(trigger.dataset.lightboxWidth) || thumb?.naturalWidth || 800;
+        const nh = Number(trigger.dataset.lightboxHeight) || thumb?.naturalHeight || 600;
+        const scale = Math.min((touch ? W : W * 0.9) / nw, (H * 0.85 - (touch ? 48 : 60)) / nh);
+        w = nw * scale;
+        h = nh * scale;
+      }
+      target = { x: (W - w) / 2, y: (H - h) / 2 - (touch ? 8 : 14), w, h };
+      Object.assign(fly.style, { left: `${target.x}px`, top: `${target.y}px`, width: `${w}px`, height: `${h}px` });
+
+      img.src = src;
+      img.alt = trigger.dataset.lightboxAlt ?? thumb?.alt ?? '';
+      img.classList.toggle('is-sticker', isSticker);
+      sender.textContent = trigger.dataset.lightboxSender ?? '';
+      caption.textContent = trigger.dataset.lightboxCaption ?? img.alt;
+      zoom = 1;
+      tx = 0;
+      ty = 0;
+      render();
+
+      document.documentElement.style.overflow = 'hidden';
+      emit(EVENTS_UI.overlay, { open: true });
+
+      if (prefersReducedMotion()) {
+        dialog.classList.remove('is-from');
+        fly.style.transform = 'none';
+        dialog.showModal();
+        return;
+      }
+      // Mulai dari posisi thumbnail (latar transparan), lalu terbang ke tengah pada frame berikutnya.
+      dialog.style.removeProperty('--dim');
+      dialog.classList.add('is-from');
+      fly.style.transition = 'none';
+      fly.style.transform = flyFromOrigin();
+      dialog.showModal();
+      void fly.offsetWidth;
+      fly.style.transition = '';
+      requestAnimationFrame(() => {
+        dialog.classList.remove('is-from');
+        dialog.style.setProperty('--dim', '0.8');
+        fly.style.transform = 'none';
+      });
+    }
+
+    function close() {
+      if (closing || !dialog.open) return;
+      closing = true;
+      zoom = 1;
+      tx = 0;
+      ty = 0;
+      render();
+      const finish = () => {
+        dialog.close();
+        dialog.classList.remove('is-from');
+        dialog.style.removeProperty('--dim');
+        document.documentElement.style.overflow = '';
+        emit(EVENTS_UI.overlay, { open: false });
+        if (opener?.isConnected) opener.focus({ preventScroll: true });
+        closing = false;
+      };
+      if (prefersReducedMotion()) return finish();
+      dialog.style.removeProperty('--dim');
+      dialog.classList.add('is-from');
+      fly.style.transform = flyFromOrigin();
+      setTimeout(finish, CLOSE_MS);
+    }
+
+    // ---- Event ---------------------------------------------------------------
+
+    // Buka dari tombol mana pun (termasuk yang dibuat ChatFeed/MadingPanel belakangan).
+    document.addEventListener('click', (event) => {
+      const trigger = (event.target as Element | null)?.closest?.<HTMLElement>('[data-lightbox-src]');
+      if (!trigger) return;
+      event.preventDefault();
+      open(trigger);
+    });
+
+    closeButton.addEventListener('click', close);
+    zoomButton.addEventListener('click', () => setZoom(zoom > 1 ? 1 : toggleZoomLevel()));
+    img.addEventListener('dblclick', () => setZoom(zoom > 1 ? 1 : toggleZoomLevel()));
+
+    // Klik area gelap (bukan gambar, tombol, atau caption) menutup.
+    dialog.addEventListener('click', (event) => {
+      if (event.target === dialog || event.target === fly) close();
+    });
+
+    // Escape: pakai animasi tutup kita sendiri, bukan tutup langsung bawaan dialog.
+    dialog.addEventListener('cancel', (event) => {
+      event.preventDefault();
+      close();
+    });
+
+    dialog.addEventListener('keydown', (event) => {
+      if (event.key === '+' || event.key === '=') setZoom(zoom > 1 ? zoom + 0.5 : toggleZoomLevel());
+      else if (event.key === '-') setZoom(zoom - 0.5 <= 1 ? 1 : zoom - 0.5);
+      else if (event.key === '0') setZoom(1);
+    });
+
+    // Geser saat zoom, cubit untuk zoom, tarik ke bawah untuk menutup (layar sentuh).
+    const pointers = new Map<number, { x: number; y: number }>();
+    let drag: { x0: number; y0: number; tx0: number; ty0: number } | null = null;
+    let pinch: { d0: number; z0: number } | null = null;
+    const distance = () => {
+      const [a, b] = [...pointers.values()];
+      return Math.hypot(a.x - b.x, a.y - b.y) || 1;
+    };
+
+    img.addEventListener('pointerdown', (event) => {
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      img.setPointerCapture(event.pointerId);
+      if (pointers.size >= 2) {
+        pinch = { d0: distance(), z0: zoom };
+        drag = null;
+      } else {
+        drag = { x0: event.clientX, y0: event.clientY, tx0: tx, ty0: ty };
+      }
+    });
+
+    img.addEventListener('pointermove', (event) => {
+      if (!pointers.has(event.pointerId)) return;
+      pointers.set(event.pointerId, { x: event.clientX, y: event.clientY });
+      if (pinch && pointers.size >= 2) {
+        zoom = Math.max(1, Math.min(maxZoom(), pinch.z0 * (distance() / pinch.d0)));
+        if (zoom === 1) tx = ty = 0;
+        render({ dragging: true });
+        return;
+      }
+      if (!drag) return;
+      const dx = event.clientX - drag.x0;
+      const dy = event.clientY - drag.y0;
+      if (zoom > 1) {
+        const mx = (target.w * (zoom - 1)) / 2;
+        const my = (target.h * (zoom - 1)) / 2;
+        tx = Math.max(-mx, Math.min(mx, drag.tx0 + dx));
+        ty = Math.max(-my, Math.min(my, drag.ty0 + dy));
+        render({ dragging: true });
+      } else if (event.pointerType !== 'mouse' && dy > 0) {
+        tx = 0;
+        ty = dy;
+        render({ dragging: true });
+      }
+    });
+
+    const endPointer = (event: PointerEvent) => {
+      pointers.delete(event.pointerId);
+      if (pinch) {
+        if (pointers.size < 2) pinch = null;
+        render();
+        return;
+      }
+      drag = null;
+      if (zoom <= 1 && ty > SWIPE_CLOSE) return close();
+      if (zoom <= 1) tx = ty = 0;
+      render();
+    };
+    img.addEventListener('pointerup', endPointer);
+    img.addEventListener('pointercancel', endPointer);
+  }
+</script>

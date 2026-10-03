@@ -1,0 +1,298 @@
+---
+/**
+ * Satu pesan di ChatFeed (teks, fanart, atau sticker).
+ *
+ * Dipakai dua cara:
+ *  1. Render awal pesan-pesan pertama (tampil walau JavaScript mati).
+ *  2. Di dalam <template> sebagai cetakan; script ChatFeed meng-clone lalu mengisi
+ *     elemen bertanda data-slot="..." (lihat fillMessage di ChatFeed.astro).
+ * Karena cetakan dirender oleh komponen ini juga, pesan baru otomatis mendapat style
+ * yang sama dengan pesan awal.
+ */
+import type { ChatMessage } from '../../data/chat-script';
+import { chatConfig } from '../../data/chat-script';
+import { getUser } from '../../data/users';
+import { getSticker, stickerAlt } from '../../data/stickers';
+import Reactions from './Reactions.astro';
+import Username from '../Username.astro';
+import Avatar from '../Avatar.astro';
+import { imageSrcset } from '../../data/assets';
+
+interface Props {
+  message: ChatMessage;
+  time: string;
+  /** Tampilkan label "Masuk Mading" (khusus fanart). */
+  saved?: boolean;
+  /**
+   * Pesan yang tampil di layar pertama: gambarnya dimuat segera dengan prioritas tinggi
+   * (biasanya jadi LCP di mobile). Cetakan <template> tetap lazy.
+   */
+  priority?: boolean;
+}
+
+const { message, time, saved = false, priority = false } = Astro.props;
+const user = getUser(message.userId);
+---
+
+<div class="chat-row" data-chat-row data-message-id={message.id} data-kind={message.kind}>
+  <div class="kn-msg chat-msg">
+    <Avatar class="kn-avatar chat-av" user={user} size={48} />
+    <div class="kn-msg__body chat-body">
+      <span class="chat-name" data-slot="name" style={`color: ${user.nameColor}`}><Username name={user.username} /></span>
+
+      {
+        message.kind === 'text' && (
+          <div class:list={['kn-bubble kn-bubble--other chat-bubble', message.bold && 'is-bold']} data-slot="bubble">
+            <span data-slot="text">{message.text}</span>
+            <span class="chat-ts" data-slot="time">{time}</span>
+          </div>
+        )
+      }
+
+      {
+        message.kind === 'fanart' && (
+          <div class="kn-bubble kn-bubble--other chat-post">
+            <button
+              type="button"
+              class="chat-post-media"
+              aria-label="Lihat gambar lebih besar"
+              data-slot="image-trigger"
+              data-lightbox-src={message.image.url}
+              data-lightbox-alt={message.image.alt}
+              data-lightbox-width={message.image.width}
+              data-lightbox-height={message.image.height}
+              data-lightbox-sender={user.username}
+              data-lightbox-caption={message.caption}
+            >
+              <img
+                data-slot="image"
+                src={message.image.url}
+                srcset={imageSrcset(message.image) || undefined}
+                sizes="(min-width: 1100px) 360px, 236px"
+                alt={message.image.alt}
+                width={message.image.width}
+                height={message.image.height}
+                loading={priority ? 'eager' : 'lazy'}
+                fetchpriority={priority ? 'high' : undefined}
+                decoding="async"
+              />
+            </button>
+            <div class="chat-post-body">
+              <div class="chat-post-line">
+                <span data-slot="caption">{message.caption}</span>
+                <span class="chat-ts" data-slot="time">{time}</span>
+              </div>
+              <span class="chat-saved" data-slot="saved" hidden={!saved}>
+                <span class="emoji" aria-hidden="true">{chatConfig.savedEmoji}</span>{chatConfig.savedLabel}
+              </span>
+            </div>
+          </div>
+        )
+      }
+
+      {
+        message.kind === 'sticker' && (
+          <div class="chat-sticker">
+            <button
+              type="button"
+              class="chat-sticker-trigger"
+              aria-label="Lihat sticker lebih besar"
+              data-slot="sticker-trigger"
+              data-lightbox-src={getSticker(message.stickerId).url}
+              data-lightbox-alt={stickerAlt(getSticker(message.stickerId))}
+              data-lightbox-sender={user.username}
+              data-lightbox-caption={`Sticker ${getSticker(message.stickerId).label}`}
+              data-lightbox-sticker
+            >
+              <img data-slot="sticker" src={getSticker(message.stickerId).url} alt={stickerAlt(getSticker(message.stickerId))} width="120" height="120" loading="lazy" decoding="async" />
+            </button>
+            <span class="chat-ts" data-slot="time">{time}</span>
+          </div>
+        )
+      }
+
+      {message.reactions && <Reactions reactions={message.reactions} targetId={message.id} authorId={message.userId} />}
+    </div>
+  </div>
+</div>
+
+<style>
+  .chat-row {
+    flex-shrink: 0;
+  }
+  /* Pesan baru: tumbuh dari tinggi 0 dan naik (artboard: kn-rise) */
+  .chat-row.is-entering {
+    overflow: hidden;
+    animation: chat-rise 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  }
+  @keyframes chat-rise {
+    from {
+      max-height: 0;
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      max-height: 520px;
+      opacity: 1;
+      transform: none;
+    }
+  }
+  :global(.is-paused) .chat-row.is-entering {
+    animation-play-state: paused;
+  }
+
+  .chat-msg {
+    max-width: 92%;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .chat-av {
+    --s: 32px;
+    margin-top: 24px;
+    object-fit: cover;
+    object-position: 50% 35%;
+    background: var(--primary-soft);
+  }
+  .chat-body {
+    gap: 4px;
+  }
+  .chat-name {
+    padding: 0 6px;
+    font: 700 14px/18px var(--font-sans);
+    letter-spacing: 0.01em;
+  }
+
+  .chat-bubble {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 9px 12px 8px 14px;
+    font-size: 16px;
+    line-height: 23px;
+    font-weight: 500;
+  }
+  .chat-bubble.is-bold {
+    font-weight: 800;
+  }
+
+  /* Post fanart di dalam bubble */
+  .chat-post {
+    box-sizing: border-box;
+    width: 236px;
+    max-width: 100%;
+    padding: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+  .chat-post-media {
+    display: block;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    line-height: 0;
+    cursor: zoom-in;
+  }
+  .chat-post-media img {
+    display: block;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+  }
+  .chat-post-body {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 9px 12px 8px 14px;
+    font-size: 16px;
+    line-height: 23px;
+  }
+  .chat-post-line {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  /* Label "📌 Masuk Mading" */
+  .chat-saved {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font: 600 12px/16px var(--font-sans);
+    color: rgb(245 180 207 / 0.8);
+  }
+  .chat-saved[hidden] {
+    display: none;
+  }
+  .chat-saved .emoji {
+    font-size: 12px;
+  }
+  .chat-saved.is-new {
+    animation: chat-saved-in 0.4s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  }
+  @keyframes chat-saved-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px) scale(0.9);
+    }
+  }
+
+  /* Sticker besar sebagai pesan */
+  .chat-sticker {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+  }
+  .chat-sticker-trigger {
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    line-height: 0;
+    cursor: zoom-in;
+  }
+  .chat-sticker img {
+    display: block;
+    width: 104px;
+    height: 104px;
+    object-fit: contain;
+    filter: drop-shadow(0 4px 10px rgb(6 3 14 / 0.45));
+  }
+
+  @media (min-width: 1100px) {
+    .chat-msg {
+      max-width: 640px;
+      gap: 12px;
+    }
+    .chat-av {
+      --s: 48px;
+    }
+    .chat-body {
+      gap: 6px;
+    }
+    .chat-bubble {
+      max-width: 560px;
+      gap: 14px;
+      padding: 14px 18px 12px 22px;
+      font-size: 19px;
+      line-height: 28px;
+    }
+    .chat-post {
+      width: 360px;
+    }
+    .chat-post-body {
+      padding: 14px 18px 12px 22px;
+      font-size: 19px;
+      line-height: 28px;
+    }
+    .chat-post-line {
+      gap: 14px;
+    }
+    .chat-sticker img {
+      width: 120px;
+      height: 120px;
+    }
+  }
+</style>

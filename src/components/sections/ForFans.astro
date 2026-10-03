@@ -1,0 +1,148 @@
+---
+/**
+ * Untuk fans: "Kamu fan?", headline, lead, dan empat bubble "momen" yang sedikit miring.
+ *
+ * Mobile: semua bertumpuk, CTA penuh di bawah bubble.
+ * Desktop (1100px+): teks 5 kolom kiri (CTA di bawah lead), bubble momen di kolom 7-12.
+ * Gaya tiap bubble (warna, sudut, kemiringan, bayangan) mengikuti artboard, lihat .moment--*.
+ */
+import { ANCHORS, forFans } from '../../data/content';
+---
+
+<section id={ANCHORS.fans} aria-labelledby="forfans-heading" class="section-y">
+  <div class="container-page grid gap-6 wide:grid-cols-12 wide:items-start wide:gap-x-12">
+    <div class="flex flex-col gap-6 wide:col-span-5 wide:gap-[22px] wide:pt-2">
+      <p class="ask-bubble">{forFans.ask}</p>
+      <h2 id="forfans-heading" class="heading-section wide:text-[44px] wide:leading-[52px]">{forFans.heading}</h2>
+      <p class="lead-section">{forFans.lead}</p>
+      <a class="kn-btn kn-btn--primary kn-btn--lg mt-1.5 hidden self-start wide:inline-flex" href={forFans.cta.href} data-pick-tab="fans">
+        {forFans.cta.label}
+      </a>
+    </div>
+
+    <ul aria-label="Momen di Konnetto" class="moments wide:col-span-6 wide:col-start-7">
+      {
+        forFans.moments.map((moment, index) => (
+          <li class:list={['moment', `moment--${index + 1}`]}>
+            {moment.tag && <span class="kn-tag moment-tag">{moment.tag}</span>}
+            <span>{moment.text}</span>
+          </li>
+        ))
+      }
+    </ul>
+
+    <a class="kn-btn kn-btn--primary kn-btn--lg kn-btn--block mt-1 wide:hidden" href={forFans.cta.href} data-pick-tab="fans">
+      {forFans.cta.label}
+    </a>
+  </div>
+</section>
+
+<style>
+  .moments {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .moment {
+    box-sizing: border-box;
+    font: 700 18px/26px var(--font-sans);
+    letter-spacing: -0.005em;
+  }
+
+  /* 1 · ungu, kiri */
+  .moment--1 {
+    align-self: flex-start;
+    max-width: 92%;
+    padding: 18px 20px;
+    border-radius: 28px 28px 28px 8px;
+    background: var(--primary);
+    color: var(--on-primary);
+    transform: rotate(-1.2deg);
+  }
+  /* 2 · pink, kanan, bayangan ungu */
+  .moment--2 {
+    align-self: flex-end;
+    max-width: 80%;
+    padding: 16px 20px;
+    border-radius: 26px 26px 8px 26px;
+    background: var(--tertiary);
+    color: var(--on-tertiary);
+    box-shadow: 4px 4px 0 var(--primary);
+    transform: rotate(1.4deg);
+  }
+  /* 3 · gelap, kiri */
+  .moment--3 {
+    align-self: flex-start;
+    max-width: 84%;
+    padding: 16px 20px;
+    border-radius: 26px 26px 26px 8px;
+    background: var(--surface-raised);
+    color: var(--ink);
+    transform: rotate(-0.8deg);
+  }
+  /* 4 · putih, kanan, bayangan pink, dengan tag Fandom Passport */
+  .moment--4 {
+    align-self: flex-end;
+    max-width: 88%;
+    padding: 16px 20px 18px;
+    border-radius: 26px 26px 8px 26px;
+    background: var(--paper);
+    color: #16121f;
+    box-shadow: 4px 4px 0 var(--tertiary);
+    transform: rotate(1deg);
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .moment-tag {
+    background: var(--primary);
+    color: var(--on-primary);
+    font-size: 12px;
+    letter-spacing: 0.02em;
+  }
+
+  @media (min-width: 1100px) {
+    .moments {
+      gap: 22px;
+      padding-top: 8px;
+    }
+    .moment {
+      font-size: 21px;
+      line-height: 30px;
+    }
+    .moment--1 {
+      max-width: 88%;
+      padding: 26px 30px;
+      border-radius: 34px 34px 34px 8px;
+      font-size: 24px;
+      line-height: 34px;
+      transform: rotate(-1.8deg);
+    }
+    .moment--2 {
+      max-width: 64%;
+      padding: 20px 26px;
+      border-radius: 30px 30px 8px 30px;
+      box-shadow: 5px 5px 0 var(--primary);
+      transform: rotate(2.2deg);
+    }
+    .moment--3 {
+      margin-left: 48px;
+      max-width: 72%;
+      padding: 20px 26px;
+      border-radius: 30px 30px 30px 8px;
+      transform: rotate(-1deg);
+    }
+    .moment--4 {
+      max-width: 80%;
+      padding: 22px 28px 24px;
+      border-radius: 30px 30px 8px 30px;
+      box-shadow: 5px 5px 0 var(--tertiary);
+      transform: rotate(1.4deg);
+      gap: 10px;
+    }
+  }
+</style>

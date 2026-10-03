@@ -1,0 +1,382 @@
+---
+/**
+ * Reactions: baris reaksi sticker Tsuba di bawah pesan chat atau post mading.
+ * Satu tombol per sticker: [gambar sticker] [angka].
+ *
+ * Gaya mengikuti artboard Versi B (sticker gambar tanpa pill), BUKAN kn-react dari
+ * design system (stamp kanji), karena artboard yang diikuti.
+ *
+ * Interaksi (script di bawah, satu listener untuk semua tombol, termasuk tombol yang
+ * ditambahkan ChatFeed belakangan):
+ *  - Klik/Enter/Space: ikut bereaksi (angka +1, sticker "pop", ring + 10 partikel) atau batal (-1).
+ *  - Desktop: kursor diam 120ms di tombol → popup "siapa yang bereaksi".
+ *  - Keyboard: fokus (Tab) → popup terbuka; Escape menutup.
+ *  - Layar sentuh: tekan lama 480ms → bottom sheet "siapa yang bereaksi" (ketukan biasa tetap bereaksi).
+ *  - Reduced motion: angka tetap berubah, tanpa pop/ring/partikel.
+ *
+ * Style memakai is:global karena efek partikel dibuat oleh JavaScript.
+ */
+import { stickerAlt, getSticker, type Reaction } from '../../data/stickers';
+import { reactionLabel } from '../../lib/reactions';
+
+interface Props {
+  reactions: Reaction[];
+  /** ID pesan/post pemilik reaksi ini, untuk analytics dan popup. */
+  targetId: string;
+  /** Penulis pesan/post; tidak ikut ditampilkan sebagai "yang bereaksi". */
+  authorId?: string;
+}
+
+const { reactions, targetId, authorId } = Astro.props;
+---
+
+<div data-reactions data-target-id={targetId} data-author-id={authorId} class="reacts">
+  {
+    reactions.map((reaction) => {
+      const sticker = getSticker(reaction.stickerId);
+      return (
+        <button
+          type="button"
+          data-reaction-button
+          data-sticker-id={sticker.id}
+          aria-pressed="false"
+          aria-haspopup="dialog"
+          aria-expanded="false"
+          aria-controls="reaction-popover"
+          aria-label={reactionLabel(reaction.stickerId, reaction.count, false, false)}
+          class="react"
+        >
+          <img src={sticker.url} alt={stickerAlt(sticker)} width="38" height="38" loading="lazy" decoding="async" class="react-img" />
+          <b>{reaction.count}</b>
+        </button>
+      );
+    })
+  }
+</div>
+
+<style is:global>
+  .reacts {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    column-gap: 16px;
+    row-gap: 4px;
+  }
+  .react {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 40px;
+    margin: 0;
+    padding: 0 2px;
+    border: 0;
+    background: none;
+    color: inherit;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+    -webkit-touch-callout: none;
+    user-select: none;
+    touch-action: manipulation;
+  }
+  .react:focus-visible {
+    border-radius: 8px;
+  }
+  .react-img {
+    display: block;
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    filter: drop-shadow(0 1px 2px rgb(6 3 14 / 0.45));
+    transition: transform 0.15s ease-out;
+  }
+  .react:hover .react-img,
+  .react[aria-expanded='true'] .react-img {
+    transform: scale(1.08);
+  }
+  .react b {
+    display: inline-block;
+    min-width: 14px;
+    font: 600 15px/1 var(--font-sans);
+    font-variant-numeric: tabular-nums;
+    color: rgb(249 249 249 / 0.8);
+  }
+  /* Kamu ikut bereaksi: angka pink tebal */
+  .react[aria-pressed='true'] b {
+    color: var(--accent-pink);
+    font-weight: 800;
+  }
+
+  /* Klik: sticker "pop" dan angka naik */
+  .react.is-pop .react-img {
+    animation: react-pop 0.42s cubic-bezier(0.3, 1.6, 0.5, 1);
+  }
+  @keyframes react-pop {
+    35% {
+      transform: scale(1.32);
+    }
+    65% {
+      transform: scale(0.94);
+    }
+  }
+  .react b.is-up {
+    animation: react-up 0.38s ease-out;
+  }
+  @keyframes react-up {
+    from {
+      transform: translateY(7px);
+      opacity: 0;
+    }
+  }
+
+  /* Angka bertambah otomatis (ChatFeed): membesar sebentar dan berwarna pink */
+  .react b.is-bump {
+    animation: react-bump 0.5s ease-out;
+  }
+  @keyframes react-bump {
+    40% {
+      transform: scale(1.4) translateY(-2px);
+      color: var(--accent-pink);
+    }
+  }
+  /* Reaksi jenis baru muncul */
+  .react.is-new {
+    animation: react-new 0.45s cubic-bezier(0.3, 1.6, 0.5, 1) both;
+  }
+  @keyframes react-new {
+    from {
+      opacity: 0;
+      transform: scale(0.4) translateY(4px);
+    }
+  }
+
+  /* Efek klik: ring + 10 partikel dari tengah sticker (warna dan arah dari artboard) */
+  .react-fx {
+    position: absolute;
+    left: 18px;
+    top: 50%;
+    z-index: 3;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+  }
+  .react-fx .ring {
+    position: absolute;
+    left: -15px;
+    top: -15px;
+    width: 30px;
+    height: 30px;
+    box-sizing: border-box;
+    border-radius: 50%;
+    border: 2px solid var(--tertiary);
+    opacity: 0;
+    animation: fx-ring 0.46s ease-out forwards;
+  }
+  @keyframes fx-ring {
+    0% {
+      transform: scale(0.35);
+      opacity: 1;
+    }
+    100% {
+      transform: scale(2.1);
+      opacity: 0;
+    }
+  }
+  .react-fx .pt {
+    position: absolute;
+    left: -3px;
+    top: -3px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    font-style: normal;
+    opacity: 0;
+    animation: fx-pt 0.62s cubic-bezier(0.15, 0.7, 0.3, 1) forwards;
+  }
+  .react-fx .star,
+  .react-fx .spark {
+    width: auto;
+    height: auto;
+    left: -5px;
+    top: -7px;
+    border-radius: 0;
+    background: none;
+    font: 800 12px/1 'Noto Sans Symbols 2', 'Segoe UI Symbol', sans-serif;
+  }
+  .react-fx .spark {
+    font: 800 14px/1 var(--font-sans);
+  }
+  @keyframes fx-pt {
+    0% {
+      transform: translate(0, 0) scale(0.6);
+      opacity: 1;
+    }
+    70% {
+      opacity: 1;
+    }
+    100% {
+      transform: translate(var(--dx), var(--dy)) scale(0.3) rotate(90deg);
+      opacity: 0;
+    }
+  }
+
+  @media (min-width: 1100px) {
+    .react-img {
+      width: 38px;
+      height: 38px;
+    }
+    .react-fx {
+      left: 21px;
+    }
+  }
+</style>
+
+<script>
+  import { EVENTS, track } from '../../lib/analytics';
+  import { canHover, prefersReducedMotion } from '../../lib/motion';
+  import { getReactionCount, setReactionCount } from '../../lib/reactions';
+  import { cancelClose, closeReactionPopover, currentPopover, openReactionPopover, scheduleClose } from '../../lib/reaction-popover';
+
+  const HOVER_DELAY = 120;
+  const LONG_PRESS = 480;
+
+  /** Partikel efek klik: [jenis, dx, dy, warna, delay ms] (dari artboard). */
+  const PARTICLES: [kind: 'dot' | 'star' | 'spark', dx: number, dy: number, color: string, delay: number][] = [
+    ['dot', -4, -34, 'var(--tertiary)', 0],
+    ['star', 21, -22, 'var(--secondary)', 15],
+    ['dot', 33, -15, 'var(--primary)', 30],
+    ['spark', 25, 12, 'var(--paper)', 0],
+    ['dot', 22, 25, 'var(--tertiary)', 15],
+    ['star', -5, 38, 'var(--secondary)', 30],
+    ['dot', -15, 26, 'var(--primary)', 0],
+    ['spark', -33, 6, 'var(--paper)', 15],
+    ['star', -28, -6, 'var(--tertiary)', 30],
+    ['dot', -17, -32, 'var(--secondary)', 0],
+  ];
+
+  const reactionFrom = (target: EventTarget | null) =>
+    target instanceof Element ? target.closest<HTMLElement>('[data-reaction-button]') : null;
+
+  /** Restart animasi CSS: hapus kelas, paksa reflow, pasang lagi. */
+  function replay(el: Element, className: string) {
+    el.classList.remove(className);
+    void (el as HTMLElement).offsetWidth;
+    el.classList.add(className);
+  }
+
+  function burst(button: HTMLElement) {
+    replay(button, 'is-pop');
+    const count = button.querySelector('b');
+    if (count) replay(count, 'is-up');
+
+    const fx = document.createElement('span');
+    fx.className = 'react-fx';
+    fx.setAttribute('aria-hidden', 'true');
+    const ring = document.createElement('span');
+    ring.className = 'ring';
+    fx.append(ring);
+    for (const [kind, dx, dy, color, delay] of PARTICLES) {
+      const particle = document.createElement('i');
+      particle.className = `pt ${kind}`;
+      particle.style.setProperty('--dx', `${dx}px`);
+      particle.style.setProperty('--dy', `${dy}px`);
+      particle.style.animationDelay = `${delay}ms`;
+      if (kind === 'dot') particle.style.background = color;
+      else {
+        particle.style.color = color;
+        particle.textContent = kind === 'star' ? '✦' : '+';
+      }
+      fx.append(particle);
+    }
+    button.append(fx);
+    setTimeout(() => {
+      fx.remove();
+      button.classList.remove('is-pop');
+    }, 800);
+  }
+
+  function toggleReaction(button: HTMLElement) {
+    const mine = button.getAttribute('aria-pressed') === 'true';
+    button.setAttribute('aria-pressed', String(!mine));
+    setReactionCount(button, getReactionCount(button) + (mine ? -1 : 1));
+    if (!mine && !prefersReducedMotion()) burst(button);
+    track(EVENTS.reactionClick, {
+      sticker: button.dataset.stickerId ?? '',
+      target: button.closest<HTMLElement>('[data-reactions]')?.dataset.targetId ?? '',
+      action: mine ? 'remove' : 'add',
+    });
+  }
+
+  // Label lengkap (dengan petunjuk klik/ketuk) baru bisa ditentukan di browser.
+  document.querySelectorAll<HTMLElement>('[data-reaction-button]').forEach((button) => setReactionCount(button, getReactionCount(button)));
+
+  // ---- Klik -----------------------------------------------------------------
+
+  let longPressFired = false;
+
+  document.addEventListener('click', (event) => {
+    const button = reactionFrom(event.target);
+    if (!button) return;
+    // Tekan lama sudah membuka bottom sheet: jangan dihitung sebagai reaksi.
+    if (longPressFired) {
+      longPressFired = false;
+      return;
+    }
+    toggleReaction(button);
+  });
+
+  // ---- Popup "siapa yang bereaksi" -----------------------------------------
+
+  if (canHover()) {
+    let openTimer: ReturnType<typeof setTimeout> | undefined;
+
+    document.addEventListener('pointerover', (event) => {
+      if (event.pointerType !== 'mouse') return;
+      const button = reactionFrom(event.target);
+      if (!button || button.contains(event.relatedTarget as Node | null)) return;
+      cancelClose();
+      clearTimeout(openTimer);
+      openTimer = setTimeout(() => openReactionPopover(button, 'hover'), HOVER_DELAY);
+    });
+
+    document.addEventListener('pointerout', (event) => {
+      if (event.pointerType !== 'mouse') return;
+      const button = reactionFrom(event.target);
+      if (!button || button.contains(event.relatedTarget as Node | null)) return;
+      clearTimeout(openTimer);
+      scheduleClose();
+    });
+  } else {
+    let pressTimer: ReturnType<typeof setTimeout> | undefined;
+    const cancelPress = () => clearTimeout(pressTimer);
+
+    document.addEventListener('pointerdown', (event) => {
+      const button = reactionFrom(event.target);
+      if (!button) return;
+      longPressFired = false;
+      cancelPress();
+      pressTimer = setTimeout(() => {
+        longPressFired = true;
+        openReactionPopover(button, 'press');
+      }, LONG_PRESS);
+    });
+    // Jari diangkat, digeser (scroll), atau keluar dari tombol: batal.
+    document.addEventListener('pointerup', cancelPress);
+    document.addEventListener('pointercancel', cancelPress);
+    document.addEventListener('pointerleave', cancelPress, true);
+    // Cegah menu konteks bawaan saat tekan lama di tombol reaksi.
+    document.addEventListener('contextmenu', (event) => {
+      if (reactionFrom(event.target)) event.preventDefault();
+    });
+  }
+
+  // Keyboard: fokus dengan Tab membuka popup, fokus pindah menutupnya.
+  document.addEventListener('focusin', (event) => {
+    const button = reactionFrom(event.target);
+    if (button?.matches(':focus-visible')) openReactionPopover(button, 'focus');
+  });
+  document.addEventListener('focusout', (event) => {
+    const button = reactionFrom(event.target);
+    if (button && currentPopover()?.mode === 'focus' && currentPopover()?.trigger === button) closeReactionPopover();
+  });
+</script>

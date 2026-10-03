@@ -1,0 +1,396 @@
+---
+/**
+ * Satu kartu di MadingPanel. Seperti ChatMessage: dipakai untuk render awal DAN sebagai
+ * cetakan <template> (fanart yang masuk dari chat), diisi lewat elemen data-slot.
+ *
+ * Desktop: kartu gelap, kepala (avatar, nama, "di Konnetto · 2 jam"), gambar selebar kartu
+ *          dengan rasio asli, caption 2 baris, reaksi. Kartu "belakang" bergeser ke kanan,
+ *          sedikit buram dan gelap; jelas lagi saat di-hover atau difokus.
+ * Mobile:  tanpa latar kartu; gambar 156px di atas, lalu "nama · 2 jam", caption, reaksi.
+ *
+ * Varian:
+ *  - post tanpa gambar: post teks (caption tidak dipotong).
+ *  - caption boleh berisi custom emoji gaya Discord, contoh ":ikut:" (lihat postStickers di
+ *    src/data/stickers.ts): dirender sebagai sticker kecil di tengah teks yang bergoyang pelan.
+ *  - promo (prop `promo`): kotak kn-slot "Slot karya" + ajakan + tombol ke tab creator di form.
+ */
+import type { MadingPost } from '../../data/mading-posts';
+import { madingConfig } from '../../data/mading-posts';
+import { getUser } from '../../data/users';
+import { postStickers, stickerAlt, type PostStickerId } from '../../data/stickers';
+import Reactions from './Reactions.astro';
+import Username from '../Username.astro';
+import Avatar from '../Avatar.astro';
+import { imageSrcset } from '../../data/assets';
+
+interface Props {
+  /** Isi post. Tidak dipakai kalau `promo` true. */
+  post?: MadingPost;
+  /** Kartu slot ajakan untuk creator (madingConfig.slot). */
+  promo?: boolean;
+  /** Kartu depan (miring kiri, tajam) atau belakang (bergeser, buram). */
+  front: boolean;
+}
+
+const { post, promo = false, front } = Astro.props;
+const author = getUser(promo || !post ? 'admin' : post.authorId);
+const slotCopy = madingConfig.slot;
+// Pecah caption jadi teks dan custom emoji (":ikut:"). Kode yang tidak dikenal tetap jadi teks.
+const caption = promo ? slotCopy.caption : (post?.caption ?? '');
+const captionParts = caption.split(/(:[a-z0-9_]+:)/).map((part) => {
+  const id = part.slice(1, -1);
+  return /^:[a-z0-9_]+:$/.test(part) && id in postStickers ? postStickers[id as PostStickerId] : part;
+});
+---
+
+<li class="md-item" data-mading-card data-post-id={promo ? 'slot' : post?.id} data-slot-card={promo ? '' : undefined}>
+  <article class:list={['md-card', front ? 'is-front' : 'is-back', promo && 'md-card--slot']}>
+    <header class="md-head">
+      <Avatar class="md-av" user={author} size={36} alt="" />
+      <div class="md-who">
+        <b class="md-name" data-slot="name"><Username name={author.username} /></b>
+        <span class="md-meta"><span class="md-community">di {madingConfig.community} </span>· <span data-slot="ago">{promo ? slotCopy.meta : post?.ago}</span></span>
+      </div>
+    </header>
+
+    {
+      promo ? (
+        <div class="md-slot kn-slot">
+          <span class="kn-slot__label">
+            {slotCopy.label}
+            <small>{slotCopy.hint}</small>
+          </span>
+        </div>
+      ) : (
+        post?.image && (
+          <button
+            type="button"
+            class="md-media"
+            data-slot="image-trigger"
+            aria-label={`Lihat gambar lebih besar: ${post.image.alt}`}
+            data-lightbox-src={post.image.url}
+            data-lightbox-alt={post.image.alt}
+            data-lightbox-width={post.image.width}
+            data-lightbox-height={post.image.height}
+            data-lightbox-sender={author.username}
+            data-lightbox-caption={post.caption}
+          >
+            <img
+              data-slot="image"
+              src={post.image.url}
+              srcset={imageSrcset(post.image) || undefined}
+              sizes="(min-width: 1100px) 400px, 300px"
+              alt={post.image.alt}
+              width={post.image.width}
+              height={post.image.height}
+              loading="lazy"
+              decoding="async"
+              style={`object-position: ${post.image.position}`}
+            />
+          </button>
+        )
+      )
+    }
+
+    <p class:list={['md-cap', !promo && !post?.image && 'md-cap--text']} data-slot="caption">
+      {
+        captionParts.map((part) =>
+          typeof part === 'string' ? (
+            part
+          ) : (
+            <img
+              class="md-emoji"
+              src={part.url}
+              alt={stickerAlt(part)}
+              width="36"
+              height="36"
+              loading="lazy"
+              decoding="async"
+            />
+          ),
+        )
+      }
+    </p>
+
+
+    {
+      promo ? (
+        <a class="md-slot-cta kn-btn kn-btn--secondary kn-btn--sm" href={slotCopy.cta.href} data-pick-tab="creator">
+          {slotCopy.cta.label}
+        </a>
+      ) : (
+        post && <Reactions reactions={post.reactions} targetId={post.id} authorId={post.authorId} />
+      )
+    }
+  </article>
+</li>
+
+<style>
+  /* ---- Mobile: kartu dalam baris yang digeser ---- */
+  .md-item {
+    flex-shrink: 0;
+    width: 260px;
+    scroll-snap-align: start;
+  }
+  .md-item.is-new {
+    animation: md-thumb-in 0.55s cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
+  }
+  @keyframes md-thumb-in {
+    from {
+      opacity: 0;
+      transform: translateX(-28px) scale(0.85);
+    }
+  }
+  .md-card {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .md-head {
+    order: 1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    padding: 0 2px;
+  }
+  .md-av {
+    flex-shrink: 0;
+    display: block;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: 50% 38%;
+    background: var(--primary);
+  }
+  .md-who {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-width: 0;
+    font: 500 13px/18px var(--font-sans);
+    color: var(--ink-muted);
+  }
+  .md-name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-weight: 700;
+    color: var(--ink);
+  }
+  .md-meta {
+    flex-shrink: 0;
+  }
+  .md-community {
+    display: none;
+  }
+  .md-media {
+    order: 0;
+    display: block;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: none;
+    line-height: 0;
+    cursor: zoom-in;
+  }
+  .md-media img {
+    display: block;
+    width: 100%;
+    height: 156px;
+    border-radius: 16px;
+    object-fit: cover;
+    background: var(--primary-soft);
+  }
+  .md-cap {
+    order: 2;
+    margin: 0;
+    padding: 0 2px;
+    font: 500 16px/23px var(--font-sans);
+  }
+  /* Post teks: caption tampil penuh, tanpa gambar */
+  .md-cap--text {
+    order: 0;
+    font-size: 17px;
+    line-height: 25px;
+    font-weight: 600;
+  }
+  /* Kartu slot ajakan */
+  .md-slot {
+    order: 0;
+    height: 156px;
+    border-radius: 16px;
+    padding: 12px;
+  }
+  /*
+   * Custom emoji di caption (gaya Discord): sticker kecil sejajar teks. Gerakannya seperti
+   * emoji animasi: lompat dan goyang sebentar, lalu diam, berulang. Reduced motion: diam.
+   * Margin negatif supaya baris yang berisi emoji tidak jadi lebih renggang.
+   */
+  .md-emoji {
+    display: inline-block;
+    width: 36px;
+    height: 36px;
+    margin: -8px 1px -6px;
+    vertical-align: middle;
+    object-fit: contain;
+    transform-origin: 50% 90%;
+    animation: md-emoji-hop 3.2s ease-in-out infinite;
+  }
+  @keyframes md-emoji-hop {
+    0%,
+    62%,
+    100% {
+      transform: none;
+    }
+    70% {
+      transform: translateY(-4px) rotate(-8deg);
+    }
+    78% {
+      transform: translateY(0) rotate(6deg);
+    }
+    86% {
+      transform: translateY(-2px) rotate(-3deg);
+    }
+    93% {
+      transform: rotate(1deg);
+    }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .md-emoji {
+      animation: none;
+    }
+  }
+  .md-slot-cta {
+    order: 3;
+    align-self: flex-start;
+  }
+  .md-card :global([data-reactions]) {
+    order: 3;
+    column-gap: 10px;
+  }
+  .md-card :global(.react-img) {
+    width: 28px;
+    height: 28px;
+  }
+
+  /* ---- Desktop: kartu feed bertumpuk ---- */
+  @media (min-width: 1100px) {
+    .md-item {
+      width: 100%;
+      /* Kartu saling tumpang 20px (madingConfig.overlap) */
+      margin-bottom: -20px;
+    }
+    .md-item.is-new {
+      animation: none;
+    }
+    /*
+     * Fanart yang sama masuk lagi dari chat saat kartunya masih terlihat: cahaya pink sebentar.
+     * Sengaja tanpa transform, supaya posisi kartu tidak berubah (feed hanya bergerak ke atas).
+     */
+    .md-item.is-pulse {
+      animation: md-glow 0.9s ease-out;
+    }
+    @keyframes md-glow {
+      30% {
+        filter: drop-shadow(0 0 18px rgb(245 180 207 / 0.75));
+      }
+    }
+    :global(.is-paused) .md-item {
+      animation-play-state: paused;
+    }
+
+    .md-card {
+      box-sizing: border-box;
+      width: calc(100% - 52px);
+      gap: 10px;
+      padding: 14px;
+      border-radius: 22px;
+      background: var(--surface);
+      border: 1px solid var(--line);
+    }
+    .md-card.is-front {
+      transform: rotate(-1.2deg);
+      box-shadow:
+        0 20px 40px rgb(6 3 14 / 0.55),
+        0 2px 6px rgb(6 3 14 / 0.4);
+    }
+    .md-card.is-back {
+      transform: translateX(40px) rotate(1.5deg) scale(0.95);
+      filter: blur(1.2px) brightness(0.72);
+      box-shadow: 0 10px 24px rgb(6 3 14 / 0.4);
+      transition: filter 0.2s;
+    }
+    .md-card.is-back:hover,
+    .md-card.is-back:focus-within {
+      filter: none;
+    }
+    /* Kartu slot ajakan selalu tajam (tombolnya harus terbaca), walau posisinya kartu belakang */
+    .md-card--slot.is-back {
+      filter: none;
+    }
+    .md-head {
+      order: 0;
+      height: 40px;
+      gap: 10px;
+      padding: 0;
+    }
+    .md-av {
+      width: 36px;
+      height: 36px;
+    }
+    .md-who {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 2px;
+    }
+    .md-name {
+      max-width: 100%;
+      font-size: 15px;
+      line-height: 20px;
+    }
+    .md-meta {
+      font-size: 12px;
+      line-height: 16px;
+      color: #cfc8e0;
+    }
+    .md-community {
+      display: inline;
+    }
+    .md-media {
+      order: 1;
+      width: calc(100% + 28px);
+      margin: 0 -14px;
+    }
+    .md-media img {
+      height: auto;
+      border-radius: 0;
+    }
+    .md-slot {
+      order: 1;
+      height: auto;
+      aspect-ratio: 4 / 3;
+    }
+    .md-cap--text {
+      order: 1;
+    }
+    .md-cap:not(.md-cap--text) {
+      height: 48px;
+      padding: 0;
+      overflow: hidden;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      font-size: 16px;
+      line-height: 24px;
+    }
+    .md-card :global([data-reactions]) {
+      column-gap: 16px;
+    }
+    .md-card :global(.react-img) {
+      width: 38px;
+      height: 38px;
+    }
+  }
+</style>

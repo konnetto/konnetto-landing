@@ -1,0 +1,78 @@
+---
+/**
+ * Halaman utama. Urutan section mengikuti artboard Versi B (fans-first).
+ * Copy semua section ada di src/data/content.ts.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navbar from '../components/Navbar.astro';
+import Hero from '../components/hero/Hero.astro';
+import ReactionPopover from '../components/hero/ReactionPopover.astro';
+import Lightbox from '../components/hero/Lightbox.astro';
+import Problem from '../components/sections/Problem.astro';
+import ForFans from '../components/sections/ForFans.astro';
+import Concept from '../components/sections/Concept.astro';
+import ForCreators from '../components/sections/ForCreators.astro';
+import Roadmap from '../components/sections/Roadmap.astro';
+import SignupForm from '../components/sections/SignupForm.astro';
+import AdminMessage from '../components/sections/AdminMessage.astro';
+import Footer from '../components/sections/Footer.astro';
+import { contact, footer, meta } from '../data/content';
+
+// Structured data (JSON-LD) untuk mesin pencari: Organization + WebSite.
+// sameAs hanya berisi link sosial media yang sudah diisi (bukan '#') di footer (content.ts).
+const site = Astro.site ?? new URL('https://konnetto.id');
+const sameAs = footer.social.map((link) => link.href).filter((href) => href.startsWith('http'));
+const structuredData = {
+  '@context': 'https://schema.org',
+  '@graph': [
+    {
+      '@type': 'Organization',
+      '@id': new URL('/#organization', site).href,
+      name: 'Konnetto',
+      url: site.href,
+      logo: new URL('/icon-512.png', site).href,
+      email: contact.email,
+      ...(sameAs.length > 0 && { sameAs }),
+    },
+    {
+      '@type': 'WebSite',
+      '@id': new URL('/#website', site).href,
+      name: 'Konnetto',
+      url: site.href,
+      inLanguage: 'id-ID',
+      publisher: { '@id': new URL('/#organization', site).href },
+    },
+  ],
+};
+---
+
+<BaseLayout title={meta.title} description={meta.description}>
+  <script slot="head" type="application/ld+json" set:html={JSON.stringify(structuredData)} />
+  <Navbar />
+
+  <main id="konten">
+    <!-- 1 · Hero (+ mading komunitas: kolom kanan di desktop, section sendiri di mobile) -->
+    <Hero />
+    <!-- 2 · Masalah -->
+    <Problem />
+    <!-- 3 · Untuk fans -->
+    <ForFans />
+    <!-- 4 · Tentang: Fandom Passport, Komunitas, Creator Home -->
+    <Concept />
+    <!-- 5 · Untuk creator -->
+    <ForCreators />
+    <!-- 6 · Roadmap -->
+    <Roadmap />
+    <!-- 7 · Form -->
+    <SignupForm />
+    <!-- 8 · Pesan dari tim -->
+    <AdminMessage />
+  </main>
+
+  <!-- 9 · Footer -->
+  <Footer />
+
+  <!-- Overlay yang dipakai bersama oleh semua komponen. Cukup satu per halaman. -->
+  <ReactionPopover />
+  <Lightbox />
+</BaseLayout>

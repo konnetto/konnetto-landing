@@ -1,0 +1,77 @@
+/*
+ * Design tokens Konnetto, tema gelap saja.
+ *
+ * Sumber: tokens.json (di folder yang sama), disalin dari design system di canvas
+ * Claude Design. Nama variabel sama persis dengan design system, karena bundle.css
+ * membacanya langsung (var(--bg), var(--ink), var(--space-4), dst).
+ *
+ * Pengecualian yang mengikuti artboard Versi B (bukan tokens.json):
+ *   --ink-muted dan --on-stage-muted: #D3CDE3 (tokens.json: #B6AECB)
+ *
+ * Font, radius, dan shadow TIDAK di sini, tapi di @theme pada global.css,
+ * karena Tailwind memakai nama yang sama dan otomatis mengeluarkannya sebagai
+ * variabel CSS (--font-sans, --radius-md, --shadow-sticker, ...).
+ */
+:root {
+  /* Latar (urutan: bg → surface → surface-raised; sunken untuk band selang-seling) */
+  --bg: #0f0b1a;
+  --surface: #181227;
+  --surface-raised: #231b38;
+  --surface-sunken: #0a0713;
+  --line: #30264a;
+  --line-strong: #6f6199;
+
+  /* Teks */
+  --ink: #f9f9f9;
+  --ink-muted: #d3cde3; /* artboard Versi B */
+  --ink-faint: #8a80a6; /* ikon, placeholder, disabled saja */
+
+  /* Brand */
+  --primary: #5c2fde;
+  --primary-hover: #6d44ec;
+  --primary-soft: #2a1d57;
+  --on-primary: #f9f9f9;
+  --secondary: #8a6edc;
+  --on-secondary: #120e1f;
+  --tertiary: #f5b4cf;
+  --tertiary-soft: #3a1f33;
+  --on-tertiary: #120e1f;
+
+  /* Warna brand sebagai TEKS */
+  --accent: #bca9f8; /* ungu untuk teks (primary sebagai teks kontrasnya kurang) */
+  --accent-pink: #f5b4cf;
+
+  /* Status */
+  --live: #ff5c85;
+  --on-live: #120e1f;
+  --success: #4fd1a0;
+  --focus: #f5b4cf;
+
+  /* Stage: latar yang selalu gelap */
+  --stage: #0f0b1a;
+  --stage-raised: #201936;
+  --stage-line: #3a2f58;
+  --on-stage: #f9f9f9;
+  --on-stage-muted: #d3cde3; /* artboard Versi B */
+  --paper: #f9f9f9;
+
+  /* Spacing, basis 4px. Sama dengan skala Tailwind bawaan: --space-4 = p-4 = 16px. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+  --space-12: 48px;
+  --space-16: 64px;
+  --space-20: 80px;
+  --space-24: 96px;
+  --space-32: 128px;
+
+  /* Tinggi kontrol (tombol, input). 44px = target sentuh minimum. */
+  --control-sm: 36px;
+  --control-md: 44px;
+  --control-lg: 56px;
+}

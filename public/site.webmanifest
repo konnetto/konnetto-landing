@@ -1,0 +1,15 @@
+{
+  "name": "Konnetto",
+  "short_name": "Konnetto",
+  "description": "Rumah komunitas otaku Indonesia.",
+  "lang": "id",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#0F0B1A",
+  "theme_color": "#0F0B1A",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

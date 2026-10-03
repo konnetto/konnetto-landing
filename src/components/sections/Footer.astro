@@ -1,0 +1,423 @@
+---
+/**
+ * Footer (artboard Versi B): bubble perpisahan dari admin, catatan, ikon sosial,
+ * link, catatan legal, lalu wordmark "konnetto" raksasa bergaris ungu dengan Tsuba
+ * mengintip di belakangnya dan kana コネット.
+ *
+ * Mobile: semua bertumpuk; catatan legal di atas wordmark.
+ * Desktop (1100px+): bubble kiri + ikon kanan, catatan legal menempel di bawah area wordmark.
+ * Wordmark selalu pas dari tepi kiri ke kanan layar (ukurannya mengikuti lebar layar).
+ *
+ * TODO(footer): isi link sosial di src/data/content.ts (masih '#').
+ */
+import { footer } from '../../data/content';
+import { tsuba } from '../../data/assets';
+import { getUser } from '../../data/users';
+import RichText from '../RichText.astro';
+import Avatar from '../Avatar.astro';
+
+const admin = getUser('admin');
+---
+
+<footer class="ft">
+  <div class="ft-top">
+    <div class="ft-say">
+      <div class="kn-msg ft-msg">
+        <Avatar class="ft-av" user={admin} size={48} />
+        <div class="kn-msg__body ft-body">
+          <span class="ft-name">{admin.username}</span>
+          <div class="kn-bubble kn-bubble--other ft-bubble">
+            <span><RichText text={footer.farewell.text} /></span>
+            <span class="chat-ts">{footer.farewell.time}</span>
+          </div>
+        </div>
+      </div>
+      <p class="ft-note">{footer.note}</p>
+    </div>
+
+    <ul class="ft-social" aria-label="Ikuti Konnetto">
+      {
+        footer.social.map((item) => (
+          <li>
+            {/* Link sosial media (http...) dibuka di tab baru; email dan '#' tidak. */}
+            <a
+              href={item.href}
+              aria-label={item.href.startsWith('http') ? `${item.label} (tab baru)` : item.label}
+              target={item.href.startsWith('http') ? '_blank' : undefined}
+              rel={item.href.startsWith('http') ? 'noopener' : undefined}
+            >
+              {item.icon === 'linkedin' && (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="3" width="18" height="18" rx="4" />
+                  <path d="M8 10.5V17M8 7.25v.01M12 17v-6.5M12 13.5a2.5 2.5 0 0 1 5 0V17" />
+                </svg>
+              )}
+              {item.icon === 'x' && (
+                <svg class="fill" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M4.2 4h4.4l3.9 5.3L17 4h2.3l-5.7 6.5L20 20h-4.4l-4.2-5.6L6.4 20H4.1l6.2-7.1z" />
+                </svg>
+              )}
+              {item.icon === 'email' && (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="5" width="18" height="14" rx="3" />
+                  <path d="M4 7.5l8 5.5 8-5.5" />
+                </svg>
+              )}
+              {item.icon === 'instagram' && (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <rect x="3" y="3" width="18" height="18" rx="5" />
+                  <circle cx="12" cy="12" r="4" />
+                  <path d="M17.5 6.5v.01" />
+                </svg>
+              )}
+            </a>
+          </li>
+        ))
+      }
+    </ul>
+  </div>
+
+  <nav class="ft-links" aria-label="Tautan footer">
+    {footer.links.map((link) => <a href={link.href}>{link.label}</a>)}
+  </nav>
+
+  <div class="ft-legal">
+    {footer.legal.map((line) => <span>{line}</span>)}
+  </div>
+
+  <!-- Wordmark raksasa + Tsuba mengintip. Dekoratif, jadi aria-hidden. -->
+  <div class="ft-mark" aria-hidden="true">
+    <span class="ft-kana" lang="ja">{footer.kana}</span>
+    <img class="ft-mascot" src={tsuba.peek.url} alt="" width={tsuba.peek.width} height={tsuba.peek.height} loading="lazy" decoding="async" />
+    <!-- Kata digambar lewat ::before (bukan teks halaman), karena warnanya sengaja hampir menyatu
+         dengan latar: tidak dibaca screen reader dan tidak dinilai sebagai teks berkontras rendah. -->
+    <span class="ft-word" data-word={footer.wordmark}></span>
+  </div>
+</footer>
+
+<style>
+  .ft {
+    position: relative;
+    overflow: hidden;
+    /* Wadah untuk unit cqw di wordmark (lebar footer = lebar layar) */
+    container-type: inline-size;
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+    padding: 48px 0 0;
+    background: var(--surface-sunken);
+    border-top: 1px solid var(--line);
+  }
+  .ft-top {
+    display: flex;
+    flex-direction: column;
+    gap: 28px;
+  }
+  .ft-say {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 0 20px;
+  }
+  .ft-msg {
+    max-width: none;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  .ft-av {
+    flex-shrink: 0;
+    display: block;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: 50% 38%;
+    background: var(--primary);
+  }
+  .ft-body {
+    gap: 4px;
+  }
+  .ft-name {
+    padding: 0 6px;
+    font: 700 13px/18px var(--font-sans);
+    color: var(--accent);
+  }
+  .ft-bubble {
+    align-self: flex-start;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 10px 12px 8px 16px;
+    font-size: 16px;
+    line-height: 24px;
+  }
+  .ft-note {
+    margin: 0;
+    font: 400 16px/25px var(--font-sans);
+    color: var(--ink-muted);
+  }
+
+  .ft-social {
+    display: flex;
+    gap: 4px;
+    margin: 0;
+    padding: 0 12px;
+    list-style: none;
+  }
+  .ft-social a {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    color: rgb(249 249 249 / 0.8);
+    transition: color 0.15s ease;
+  }
+  .ft-social a:hover,
+  .ft-social a:focus-visible {
+    color: var(--accent-pink);
+  }
+  .ft-social svg {
+    width: 22px;
+    height: 22px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .ft-social svg.fill {
+    fill: currentColor;
+    stroke: none;
+  }
+
+  .ft-links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0 20px;
+    margin: 0 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+  }
+  .ft-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--control-md);
+    font: 500 16px/20px var(--font-sans);
+    color: rgb(249 249 249 / 0.6);
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .ft-links a:hover,
+  .ft-links a:focus-visible {
+    color: var(--ink);
+  }
+
+  .ft-legal {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 0 20px;
+    font: 500 12px/17px var(--font-sans);
+    color: rgb(249 249 249 / 0.6);
+  }
+
+  /*
+   * Wordmark raksasa, selalu pas dari tepi kiri ke kanan (seperti artboard 1440, di semua lebar).
+   *
+   * --f = ukuran huruf, mengikuti lebar footer (unit cqw). Lebar kata "konnetto" = 5.8 × --f
+   * (diukur di browser), jadi 16.2cqw menyisakan ~3% di kiri dan kanan. Tinggi kotak, posisi
+   * Tsuba, dan kana dihitung dari --f dengan rasio artboard, sehingga bagian bawah huruf tetap
+   * "tenggelam" (terpotong) dengan proporsi yang sama di layar mana pun.
+   * Rasio mobile dari artboard 390, rasio tablet/desktop dari artboard 1440.
+   * Isi #190E38 (dari artboard, tidak ada di token) dengan garis primary.
+   */
+  .ft-mark {
+    --f: 16.2cqw;
+    position: relative;
+    height: calc(var(--f) * 1.45);
+    margin-top: -6px;
+    overflow: hidden;
+  }
+  .ft-word {
+    position: absolute;
+    left: 50%;
+    top: calc(var(--f) * 0.645);
+    z-index: 2;
+    transform: translateX(-50%);
+    font: 800 var(--f) / 1 var(--font-display);
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    color: #190e38;
+    -webkit-text-stroke: 1.25px var(--primary);
+    user-select: none;
+  }
+  .ft-word::before {
+    content: attr(data-word);
+  }
+  /* Tsuba diukur dari awal kata (50% - setengah lebar kata) */
+  .ft-mascot {
+    position: absolute;
+    left: calc(50% - var(--f) * 2.14);
+    top: calc(var(--f) * 0.1);
+    z-index: 1;
+    display: block;
+    width: calc(var(--f) * 1.94);
+    height: auto;
+    pointer-events: none;
+    user-select: none;
+  }
+  /* Kana sejajar ujung kanan kata */
+  .ft-kana {
+    position: absolute;
+    right: calc(50% - var(--f) * 2.8);
+    top: calc(var(--f) * 0.29);
+    z-index: 2;
+    font: 800 max(11px, calc(var(--f) * 0.21)) / 1 var(--font-jp);
+    letter-spacing: 0.14em;
+    color: var(--accent-pink);
+  }
+
+  /* Tablet: ukuran menengah */
+  @media (min-width: 768px) {
+    .ft {
+      gap: 32px;
+      padding-top: 64px;
+    }
+    .ft-say,
+    .ft-legal {
+      padding: 0 32px;
+    }
+    .ft-social {
+      padding: 0 24px;
+    }
+    .ft-links {
+      margin: 0 32px;
+    }
+    /* Rasio artboard 1440 */
+    .ft-mark {
+      height: calc(var(--f) * 1.183);
+    }
+    .ft-word {
+      top: calc(var(--f) * 0.413);
+      -webkit-text-stroke-width: 2px;
+    }
+    .ft-mascot {
+      left: calc(50% - var(--f) * 1.943);
+      top: calc(var(--f) * 0.104);
+      width: calc(var(--f) * 1.39);
+    }
+    .ft-kana {
+      top: calc(var(--f) * 0.243);
+      font-size: max(13px, calc(var(--f) * 0.0957));
+    }
+  }
+
+  /* Desktop: sesuai artboard 1440 */
+  @media (min-width: 1100px) {
+    .ft {
+      gap: 36px;
+      padding-top: 72px;
+    }
+    .ft-top {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: flex-end;
+      gap: 48px;
+      padding: 0 80px;
+    }
+    .ft-say {
+      max-width: 600px;
+      gap: 16px;
+      padding: 0;
+    }
+    .ft-msg {
+      gap: 12px;
+    }
+    .ft-av {
+      width: 48px;
+      height: 48px;
+    }
+    .ft-body {
+      gap: 6px;
+    }
+    .ft-name {
+      font-size: 14px;
+    }
+    .ft-bubble {
+      gap: 12px;
+      padding: 12px 16px 10px 20px;
+      font-size: 18px;
+      line-height: 28px;
+    }
+    .ft-note {
+      padding-left: 56px;
+      font-size: 15px;
+      line-height: 24px;
+    }
+    .ft-social {
+      gap: 6px;
+      padding: 0;
+    }
+    .ft-links {
+      gap: 8px 28px;
+      margin: 0 80px;
+      padding-top: 20px;
+    }
+    .ft-links a {
+      min-height: 0;
+      font-size: 14px;
+    }
+    /* Legal menempel di bawah area wordmark (footer adalah wadah posisinya) */
+    .ft-legal {
+      position: absolute;
+      left: 80px;
+      right: 80px;
+      bottom: 14px;
+      z-index: 4;
+      flex-direction: row;
+      justify-content: space-between;
+      gap: 24px;
+      padding: 0;
+      font-size: 12px;
+      line-height: 16px;
+    }
+    .ft-mark {
+      margin-top: 0;
+    }
+    /* Gradasi gelap di tepi bawah supaya legal terbaca di atas wordmark */
+    .ft-mark::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 3;
+      height: 60px;
+      background: linear-gradient(to bottom, rgb(10 7 19 / 0), rgb(10 7 19 / 0.92) 80%);
+      pointer-events: none;
+    }
+  }
+
+  /* Di atas 1440px: posisi mengikuti kolom konten, bukan tepi layar */
+  @media (min-width: 1440px) {
+    .ft-top,
+    .ft-links,
+    .ft-legal {
+      max-width: calc(var(--container-page) - 160px);
+    }
+    .ft-top,
+    .ft-links {
+      margin-inline: auto;
+      width: calc(100% - 160px);
+      box-sizing: border-box;
+      padding-inline: 0;
+    }
+    .ft-legal {
+      left: 50%;
+      right: auto;
+      width: calc(var(--container-page) - 160px);
+      transform: translateX(-50%);
+    }
+  }
+</style>

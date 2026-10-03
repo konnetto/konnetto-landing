@@ -1,0 +1,239 @@
+---
+/**
+ * Hero (artboard Versi B): chat komunitas yang hidup, lalu headline dan lead
+ * sebagai bubble "terkirim" dari Konnetto, lalu CTA.
+ *
+ * Layout:
+ *  - Mobile: hero muat satu layar (chat 3-4 pesan + bubble + CTA).
+ *    MadingPanel menjadi section tersendiri di bawahnya.
+ *  - wide (>= 1100px): kolom chat 780px di kiri, MadingPanel 444px menempel di kanan hero.
+ *
+ * Keputusan terbuka (TODO hero): di artboard, bubble headline baru muncul 2.8 detik setelah halaman
+ * dibuka (animasi .pop-big). Sengaja belum dipasang karena memperlambat kesan pertama dan LCP;
+ * headline langsung tampil dalam keadaan akhirnya (bayangan pink).
+ */
+import ChatFeed from './ChatFeed.astro';
+import ReadTicks from './ReadTicks.astro';
+import MadingPanel from './MadingPanel.astro';
+import { EVENTS } from '../../lib/analytics';
+import { ANCHORS, hero } from '../../data/content';
+import { tsuba } from '../../data/assets';
+---
+
+<div class="grain">
+  <!--
+    --mading-w: lebar kolom mading di desktop. 444px di 1440 (artboard), mengecil sampai 330px di 1100
+    supaya chat + headline tetap muat di sebelahnya.
+  -->
+  <div class="relative mx-auto max-w-(--container-page) [--mading-w:clamp(330px,30.8vw,444px)]" data-hero-wrap>
+    <section
+      id={ANCHORS.top}
+      aria-labelledby="hero-heading"
+      class="hero-section container-page flex h-[min(780px,calc(100svh-64px))] flex-col justify-end pt-4 pb-5 max-md:px-4 wide:h-auto wide:min-h-[892px] wide:justify-center wide:pt-32 wide:pb-18"
+    >
+      <!-- Mobile: chat mengisi sisa tinggi layar di atas bubble headline -->
+      <div class="kn-chat w-full gap-3 max-wide:min-h-0 max-wide:flex-1 max-wide:justify-end wide:w-[min(780px,calc(100%-var(--mading-w)-48px))] wide:gap-[18px]">
+        <ChatFeed />
+
+        <!-- Headline + lead sebagai bubble "terkirim" (rata kanan) -->
+        <div class="flex flex-col items-end gap-2 wide:mt-2.5 wide:gap-2.5">
+          <div class="hero-headline flex w-full flex-col gap-2 rounded-[30px_30px_8px_30px] bg-primary px-[22px] pt-6 pb-3 shadow-[5px_5px_0_var(--tertiary)] wide:rounded-[48px_48px_10px_48px] wide:shadow-[8px_8px_0_var(--tertiary)] wide:px-[clamp(32px,3.6vw,52px)] wide:pt-11 wide:pb-[22px]">
+            <h1 id="hero-heading" class="hero-h1 font-display text-[34px] leading-10 font-bold tracking-[-0.02em] text-on-primary wide:text-[clamp(52px,calc(5.88vw-12.7px),72px)] wide:leading-[1.08]">
+              {hero.headlineLines.map((line) => (<>{line}<br /></>))}
+              <span class="whitespace-nowrap text-tertiary">{hero.headlineHighlight}</span>
+            </h1>
+            <span class="inline-flex items-center gap-1.5 self-end text-caption text-[#E6DEFF]">{hero.sentAt}<ReadTicks /></span>
+          </div>
+          <div class="hero-lead flex max-w-[92%] items-end gap-2.5 rounded-[20px_20px_6px_20px] bg-primary px-3.5 pt-2.5 pb-2 wide:max-w-[620px] wide:gap-3.5 wide:rounded-[22px_22px_6px_22px] wide:px-[22px] wide:pt-3.5 wide:pb-3">
+            <p class="hero-lead-text m-0 text-body font-medium text-on-primary wide:text-[19px] wide:leading-7">{hero.lead}</p>
+            <span class="inline-flex shrink-0 items-center gap-1.5 text-caption text-[#E6DEFF]">{hero.sentAt}<ReadTicks /></span>
+          </div>
+
+          <!-- CTA. Mobile: tombol penuh lalu link. Desktop: link lalu tombol, rata kanan. -->
+          <div class="hero-ctas flex w-full flex-col items-stretch gap-1 pt-1.5 wide:w-auto wide:flex-row-reverse wide:items-center wide:gap-6 wide:pt-2">
+            <a
+              class="kn-btn kn-btn--paper kn-btn--lg kn-btn--pop wide:px-9 wide:text-[18px]"
+              href={hero.primaryCta.href}
+              data-umami-event={EVENTS.heroCtaClick}
+              data-hero-cta
+            >
+              {hero.primaryCta.label}
+            </a>
+            <a class="hero-link self-center py-2.5 text-body-sm font-bold wide:text-body" href={hero.creatorLink.href} data-pick-tab="creator">
+              {hero.creatorLink.label}
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!--
+      Tsuba mengintip dari balik kolom mading (desktop saja), di belakang chat dan mading.
+      Dekoratif, jadi alt kosong. Posisi dan lapisan diatur di CSS .hero-tsuba.
+      loading="lazy": di mobile gambar ini display: none, dan browser tidak mengunduh gambar lazy
+      yang tersembunyi (hemat ~150KB). Di desktop tetap langsung dimuat karena ada di layar pertama.
+    -->
+    <img
+      class="hero-tsuba"
+      data-hero-tsuba
+      src={tsuba.peekSide.url}
+      alt=""
+      width={tsuba.peekSide.width}
+      height={tsuba.peekSide.height}
+      loading="lazy"
+      decoding="async"
+      aria-hidden="true"
+    />
+
+    <!-- Mading: section sendiri di mobile, kolom kanan hero di desktop -->
+    <MadingPanel />
+  </div>
+</div>
+
+<style>
+  .hero-link {
+    color: var(--ink);
+    text-decoration: underline;
+    text-decoration-color: var(--tertiary);
+    text-underline-offset: 5px;
+    text-decoration-thickness: 2px;
+  }
+  .hero-link:hover {
+    color: var(--accent-pink);
+  }
+
+  /*
+   * Animasi masuk: bubble headline "pop" seperti di artboard (naik, sedikit membal, bayangan pink
+   * muncul), lalu bubble lead dan tombol. Artboard memberi jeda 2.8 detik sebelum headline muncul;
+   * di sini tanpa jeda awal supaya kesan pertama dan LCP tidak tertunda. Reduced motion: langsung tampil.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    .hero-headline {
+      transform-origin: 100% 100%;
+      animation: hero-pop-big 0.55s cubic-bezier(0.2, 0.9, 0.25, 1.2) both;
+    }
+    .hero-lead {
+      animation: hero-pop 0.38s cubic-bezier(0.2, 0.8, 0.3, 1.2) 0.18s both;
+    }
+    .hero-ctas {
+      animation: hero-pop 0.38s cubic-bezier(0.2, 0.8, 0.3, 1.2) 0.28s both;
+    }
+  }
+  @keyframes hero-pop-big {
+    0% {
+      opacity: 0;
+      transform: translateY(28px) scale(0.88);
+      box-shadow: 0 0 0 var(--tertiary);
+    }
+    60% {
+      opacity: 1;
+      transform: translateY(-4px) scale(1.03);
+    }
+  }
+  @keyframes hero-pop {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.97);
+    }
+  }
+
+  /*
+   * Tsuba mengintip dari balik kolom mading (>= 1100px).
+   *  - z-index -1 di dalam .grain (punya isolation): di belakang chat dan mading, di atas latar.
+   *  - Tepi kanan gambar = garis potongan badannya (lihat scripts/prepare-tsuba.mjs), diletakkan
+   *    --wall-inset di dalam kolom mading: sedikit di belakang tepi kiri kartu "belakang"
+   *    (yang bergeser 40px), jadi selalu tertutup kartu, berapa pun posisi feed.
+   *  - Catatan: tangan di depan kartu sudah dicoba, tapi terlihat seperti tempelan di tengah
+   *    kartu saat kartu "depan" lewat dan menutupi teks kartu, jadi tidak dipakai.
+   *  - Tinggi mengikuti lebar layar. Posisi atas (--tsuba-top) dihitung script supaya ujung
+   *    rambutnya terselip di balik bubble headline; nilai di bawah hanya cadangan sebelum script jalan.
+   */
+  .hero-tsuba {
+    display: none;
+  }
+  @media (min-width: 1100px) {
+    .hero-tsuba {
+      --wall-inset: 52px;
+      --tsuba-h: clamp(330px, 30vw, 440px);
+      position: absolute;
+      z-index: -1;
+      display: block;
+      top: var(--tsuba-top, clamp(120px, 11vw, 160px));
+      right: calc(var(--space-20) + var(--mading-w) - var(--wall-inset));
+      width: auto;
+      height: var(--tsuba-h);
+      pointer-events: none;
+      user-select: none;
+    }
+  }
+  /* Muncul pelan dari balik feed setelah headline tampil */
+  @media (min-width: 1100px) and (prefers-reduced-motion: no-preference) {
+    .hero-tsuba {
+      animation: hero-tsuba-peek 0.7s cubic-bezier(0.2, 0.8, 0.3, 1.1) 0.6s both;
+    }
+  }
+  @keyframes hero-tsuba-peek {
+    from {
+      opacity: 0;
+      transform: translateX(45%);
+    }
+  }
+
+  /*
+   * HP dengan layar pendek (tinggi <= 820px): padatkan headline, lead, dan tombol supaya
+   * jendela chat di atasnya tetap cukup tinggi (sebelumnya mentok di 96px = satu pesan).
+   */
+  @media (max-width: 1099px) and (max-height: 820px) {
+    .hero-section {
+      padding-top: 8px;
+      padding-bottom: 12px;
+    }
+    .hero-headline {
+      gap: 4px;
+      padding: 16px 18px 8px;
+    }
+    .hero-h1 {
+      font-size: 28px;
+      line-height: 33px;
+    }
+    .hero-lead {
+      padding: 8px 12px 6px 14px;
+    }
+    .hero-lead-text {
+      font-size: 15px;
+      line-height: 21px;
+    }
+    .hero-ctas .kn-btn {
+      --h: 48px;
+      font-size: 16px;
+    }
+    .hero-link {
+      padding-block: 6px;
+    }
+  }
+</style>
+
+<script>
+  // Letakkan Tsuba supaya ujung rambutnya terselip di balik bubble headline (desktop).
+  const wrap = document.querySelector<HTMLElement>('[data-hero-wrap]');
+  const tsubaBody = wrap?.querySelector<HTMLElement>('[data-hero-tsuba]');
+  const headline = wrap?.querySelector<HTMLElement>('.hero-headline');
+  const desktop = window.matchMedia('(min-width: 1100px)');
+  /** Seberapa dalam ujung rambut terselip di balik headline (px). */
+  const TUCK = 40;
+  /** Jangan lebih tinggi dari ini (di bawah navbar). */
+  const MIN_TOP = 96;
+
+  function placeTsuba() {
+    if (!wrap || !tsubaBody || !headline || !desktop.matches) return;
+    // offsetTop tidak terpengaruh animasi transform headline
+    const top = headline.offsetTop + TUCK - tsubaBody.offsetHeight;
+    wrap.style.setProperty('--tsuba-top', `${Math.max(MIN_TOP, Math.round(top))}px`);
+  }
+
+  if (wrap) {
+    placeTsuba();
+    new ResizeObserver(placeTsuba).observe(wrap);
+    document.fonts?.ready.then(placeTsuba);
+  }
+</script>

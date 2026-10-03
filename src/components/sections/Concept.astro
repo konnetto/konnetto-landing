@@ -1,0 +1,308 @@
+---
+/**
+ * Tentang (#tentang): "Rumah untuk creator, fans, dan identitas fandom."
+ * Tiga kartu: Fandom Passport (pink, besar), Komunitas (mini chat), Creator Home (mini profil).
+ *
+ * Mobile: tag di atas judul, kartu bertumpuk.
+ * Desktop (1100px+): judul kiri + tag kanan; grid 12 kolom, passport 7 kolom x 2 baris,
+ * Komunitas dan Creator Home di kolom 8-12.
+ * Mini chat dan mini profil hanyalah contoh tampilan (bukan kontrol), jadi pakai span biasa.
+ */
+import { ANCHORS, concept } from '../../data/content';
+import { getUser } from '../../data/users';
+import FandomPassport from './FandomPassport.astro';
+import Username from '../Username.astro';
+import Avatar from '../Avatar.astro';
+
+const { passport, community, creatorHome } = concept;
+const creator = getUser(creatorHome.profile.userId);
+---
+
+<section id={ANCHORS.about} aria-labelledby="concept-heading" class="section-y md:bg-surface-sunken">
+  <div class="container-page flex flex-col gap-6 wide:gap-10">
+    <div class="flex flex-col gap-6 wide:flex-row-reverse wide:items-end wide:justify-between wide:gap-12">
+      <span class="kn-tag kn-tag--soon h-7 shrink-0 self-start text-[13px] wide:mb-2 wide:self-auto">{concept.tag}</span>
+      <h2 id="concept-heading" class="heading-section max-w-[820px]">{concept.heading}</h2>
+    </div>
+
+    <div class="grid gap-4 wide:grid-cols-12">
+      <!-- Fandom Passport -->
+      <div class="passport-card wide:col-span-7 wide:row-span-2">
+        <FandomPassport />
+        <div class="flex flex-col gap-3 wide:gap-[18px]">
+          <h3 class="passport-title">{passport.title}</h3>
+          <p class="passport-body">{passport.body}</p>
+        </div>
+      </div>
+
+      <!-- Komunitas -->
+      <div class="concept-card concept-card--community wide:col-span-5 wide:col-start-8">
+        <h3 class="kn-card__title">{community.title}</h3>
+        <p class="concept-body text-ink-muted">{community.body}</p>
+        <div class="mini-chat" role="group" aria-label="Contoh obrolan di komunitas">
+          {
+            community.chat.map((line) => {
+              const user = getUser(line.userId);
+              return (
+                <div class="mini-msg">
+                  <Avatar class="mini-av" user={user} size={32} />
+                  <div class="mini-b">
+                    <span class="mini-un" style={`color: ${user.nameColor}`}>{user.username}</span>
+                    <span class="mini-bubble">{line.text}</span>
+                  </div>
+                </div>
+              );
+            })
+          }
+          <div class="mini-sys">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="3"></rect><path d="M8 3v4M16 3v4M4 10h16"></path></svg>
+            <span><b>{community.session.label}</b> {community.session.text}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Creator Home -->
+      <div class="concept-card concept-card--home wide:col-span-5 wide:col-start-8">
+        <h3 class="kn-card__title">{creatorHome.title}</h3>
+        <p class="concept-body">{creatorHome.body}</p>
+        <div class="mini-profile" role="group" aria-label={`Contoh profil creator ${creator.username}`}>
+          <Avatar class="mini-av mini-av--lg" user={creator} size={44} />
+          <div class="mini-pinfo">
+            <span class="mini-pname"><Username name={creator.username} /></span>
+            <span class="mini-status"><i aria-hidden="true"></i>{creatorHome.profile.status}</span>
+          </div>
+          <div class="mini-actions">
+            {creatorHome.profile.actions.map((action, index) => <span class:list={['mini-btn', index === 1 && 'mini-btn--fill']}>{action}</span>)}
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Kartu passport: pink, satu sudut kecil, bayangan sticker */
+  .passport-card {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 22px 20px 24px;
+    border-radius: 32px 32px 32px 10px;
+    background: var(--tertiary);
+    color: var(--on-tertiary);
+    box-shadow: var(--shadow-sticker);
+  }
+  .passport-title {
+    margin: 0;
+    font: 700 26px/32px var(--font-display);
+    letter-spacing: -0.02em;
+  }
+  .passport-body {
+    margin: 0;
+    max-width: 30em;
+    font: 500 16px/26px var(--font-sans);
+  }
+
+  .concept-card {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 20px 18px;
+  }
+  .concept-card--community {
+    border-radius: 30px 30px 30px 8px;
+    background: var(--surface-raised);
+  }
+  .concept-card--home {
+    border-radius: 30px 30px 8px 30px;
+    background: var(--primary);
+    color: var(--on-primary);
+  }
+  .concept-body {
+    margin: 0;
+    font: 400 16px/25px var(--font-sans);
+  }
+
+  /* Mini chat (Komunitas) */
+  .mini-chat {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding-top: 6px;
+  }
+  .mini-msg {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  .mini-av {
+    flex-shrink: 0;
+    display: block;
+    width: 32px;
+    height: 32px;
+    margin-top: 18px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: 50% 35%;
+    background: var(--primary-soft);
+  }
+  .mini-b {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .mini-un {
+    padding: 0 4px;
+    font: 700 12px/16px var(--font-sans);
+  }
+  .mini-bubble {
+    align-self: flex-start;
+    padding: 9px 14px 8px;
+    border-radius: 18px 18px 18px 6px;
+    background: var(--surface);
+    font: 500 16px/23px var(--font-sans);
+  }
+  .mini-sys {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-top: 4px;
+    padding: 10px 14px;
+    border-radius: 14px;
+    background: var(--primary-soft);
+    font: 500 16px/23px var(--font-sans);
+  }
+  .mini-sys b {
+    font-weight: 800;
+    color: var(--accent-pink);
+  }
+  .mini-sys svg {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 2px;
+    fill: none;
+    stroke: var(--tertiary);
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Mini profil (Creator Home). Mobile: tombol turun ke baris sendiri. */
+  .mini-profile {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 12px;
+    margin-top: 6px;
+    padding: 12px 14px;
+    border-radius: 18px;
+    background: rgb(15 11 26 / 0.32);
+  }
+  .mini-av--lg {
+    width: 44px;
+    height: 44px;
+    margin-top: 0;
+    box-shadow: 0 0 0 2px var(--paper);
+  }
+  .mini-pinfo {
+    min-width: 0;
+    flex: 1 1 150px;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .mini-pname {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 700 16px/21px var(--font-sans);
+  }
+  .mini-status {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font: 600 13px/17px var(--font-sans);
+    color: #ffd3e5;
+  }
+  .mini-status i {
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--tertiary);
+  }
+  .mini-actions {
+    flex: 1 0 100%;
+    display: flex;
+    gap: 6px;
+  }
+  .mini-btn {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: var(--radius-pill);
+    box-shadow: inset 0 0 0 1.5px rgb(249 249 249 / 0.7);
+    font: 700 13px/1 var(--font-sans);
+    white-space: nowrap;
+  }
+  .mini-btn--fill {
+    background: var(--paper);
+    box-shadow: none;
+    color: var(--primary);
+  }
+
+  @media (min-width: 1100px) {
+    .passport-card {
+      justify-content: space-between;
+      gap: 28px;
+      min-height: 420px;
+      padding: 40px;
+      border-radius: 40px 40px 40px 10px;
+    }
+    .passport-title {
+      font-size: 40px;
+      line-height: 44px;
+    }
+    .passport-body {
+      font-size: 19px;
+      line-height: 30px;
+    }
+    .concept-card {
+      padding: 28px;
+    }
+    .concept-card--community {
+      border-radius: 32px 32px 32px 8px;
+    }
+    .concept-card--home {
+      border-radius: 32px 32px 8px 32px;
+    }
+    .concept-body {
+      font-size: 17px;
+      line-height: 26px;
+    }
+    .mini-sys {
+      font-size: 15px;
+      line-height: 22px;
+    }
+    /* Desktop: profil satu baris, tombol di kanan */
+    .mini-profile {
+      flex-wrap: nowrap;
+    }
+    .mini-pinfo {
+      flex: 1;
+    }
+    .mini-actions {
+      flex: none;
+    }
+    .mini-btn {
+      flex: none;
+    }
+  }
+</style>

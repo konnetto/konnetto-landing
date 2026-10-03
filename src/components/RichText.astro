@@ -1,0 +1,30 @@
+---
+/**
+ * Merender RichText dari src/data/content.ts:
+ *  - string biasa → teks
+ *  - { em: 'rumah' } → teks miring berwarna pink (seperti di artboard)
+ *  - { emoji: '👋', label: 'melambai' } → emoji dengan label untuk screen reader
+ */
+import type { RichText } from '../data/content';
+
+interface Props {
+  text: RichText;
+}
+
+const { text } = Astro.props;
+const parts = typeof text === 'string' ? [text] : text;
+---
+
+{
+  parts.map((part) =>
+    typeof part === 'string' ? (
+      part
+    ) : 'em' in part ? (
+      <em class="text-accent-pink italic">{part.em}</em>
+    ) : (
+      <span class="emoji" role="img" aria-label={part.label}>
+        {part.emoji}
+      </span>
+    ),
+  )
+}

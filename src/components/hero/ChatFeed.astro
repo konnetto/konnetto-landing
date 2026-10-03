@@ -1,0 +1,540 @@
+---
+/**
+ * ChatFeed: loop obrolan komunitas di hero. Naskah dan timing ada di src/data/chat-script.ts.
+ *
+ * Alur (sesuai artboard Versi B):
+ *  1. `initialVisible` pesan pertama dirender di server (tampil walau JS mati / reduced motion).
+ *  2. Setelah `startDelayMs`: typing indicator (`typingMs`) → pesan naik dari bawah →
+ *     jeda `gapMs` → pesan berikutnya. Naskah berulang tanpa henti.
+ *  3. Tiap `reactionBumpMs`, satu reaksi di 5 pesan terakhir bertambah, atau muncul reaksi baru.
+ *  4. Pesan fanart "masuk mading": ChatFeed mengirim event `fanartToMading` (src/lib/events.ts),
+ *     lalu label "📌 Masuk Mading" muncul di bawah pesan.
+ *
+ * Pause (semua lewat satu PauseController, lihat src/lib/motion.ts):
+ *  - Tab tidak aktif, atau chat di luar layar.
+ *  - Desktop: kursor di atas konten chat (avatar, nama, bubble, post, sticker, reaksi, typing),
+ *    bukan di area kosong di sekitarnya. Layar sentuh: ketuk chat, muncul chip "Dijeda · ketuk untuk lanjut".
+ *  - Fokus keyboard di dalam chat (misalnya Tab ke tombol reaksi).
+ *  - Popover reaksi / lightbox terbuka (event `overlay`).
+ * Reduced motion: loop tidak dijalankan sama sekali.
+ *
+ * Aksesibilitas: sengaja tanpa aria-live; loop yang terus berjalan akan dibacakan
+ * berulang-ulang oleh screen reader.
+ */
+import { chatConfig, chatScript, messageTime, type ChatMessage as ChatMessageData } from '../../data/chat-script';
+import ChatMessage from './ChatMessage.astro';
+import Reactions from './Reactions.astro';
+import Avatar from '../Avatar.astro';
+
+const initialMessages = chatScript.slice(0, chatConfig.initialVisible);
+
+// Satu contoh pesan per jenis, untuk cetakan <template>.
+function sampleOf<K extends ChatMessageData['kind']>(kind: K) {
+  const found = chatScript.find((message) => message.kind === kind);
+  if (!found) throw new Error(`chat-script.ts butuh minimal satu pesan jenis "${kind}"`);
+  return found;
+}
+---
+
+<div class="hero-chat" data-chat-feed>
+  <div class="chat-window" data-chat-window role="region" aria-label="Contoh obrolan komunitas">
+    {initialMessages.map((message, index) => <ChatMessage message={message} time={messageTime(index)} saved={message.kind === 'fanart'} priority />)}
+
+    <!-- Typing indicator: selalu elemen terakhir di jendela chat -->
+    <div class="chat-typing" data-chat-typing hidden>
+      <div class="kn-msg typing-msg">
+        <Avatar class="kn-avatar typing-av" size={48} alt="" />
+        <div class="kn-msg__body typing-body">
+          <span class="typing-name" data-slot="name"></span>
+          <div class="typing-line">
+            <div class="typing-dots" aria-hidden="true"><i></i><i></i><i></i></div>
+            <span class="typing-label">{chatConfig.typingLabel}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Layar sentuh: muncul saat chat dijeda dengan ketukan -->
+  <button type="button" class="pause-chip" data-chat-resume hidden>
+    <svg width="10" height="12" viewBox="0 0 10 12" fill="currentColor" aria-hidden="true">
+      <rect x="0" y="0" width="3.5" height="12" rx="1"></rect><rect x="6.5" y="0" width="3.5" height="12" rx="1"></rect>
+    </svg>
+    Dijeda · ketuk untuk lanjut
+  </button>
+
+  <!-- Cetakan untuk pesan baru (di-clone oleh script di bawah) -->
+  <template data-tpl="text"><ChatMessage message={sampleOf('text')} time="" /></template>
+  <template data-tpl="fanart"><ChatMessage message={sampleOf('fanart')} time="" /></template>
+  <template data-tpl="sticker"><ChatMessage message={sampleOf('sticker')} time="" /></template>
+  <template data-tpl="reaction"><Reactions reactions={[{ stickerId: 'gas', count: 0 }]} targetId="template" /></template>
+</div>
+
+<style>
+  /* Mobile: mengisi sisa tinggi hero (min 96px, maks 300px). Desktop: tinggi tetap 480px. */
+  .hero-chat {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 96px;
+    max-height: 300px;
+    display: flex;
+    flex-direction: column;
+  }
+  .chat-window {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 12px;
+    overflow: hidden;
+    /*
+     * Ruang di kiri untuk avatar decoration (dekorasi 1,5x avatar = menonjol 25% di tiap sisi).
+     * Margin negatif menjaga posisi pesan tetap sama.
+     */
+    --deco-bleed: 8px;
+    padding-left: var(--deco-bleed);
+    margin-left: calc(-1 * var(--deco-bleed));
+    /* Pesan lama memudar di bagian atas */
+    mask-image: linear-gradient(to bottom, transparent 0, #000 72px);
+  }
+
+  /* Typing indicator */
+  .chat-typing {
+    flex-shrink: 0;
+  }
+  .chat-typing[hidden] {
+    display: none;
+  }
+  .chat-typing.is-entering {
+    /* Bukan overflow: hidden, supaya avatar decoration di kiri tidak terpotong */
+    clip-path: inset(0 0 0 -16px);
+    animation: typing-rise 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  }
+  @keyframes typing-rise {
+    from {
+      max-height: 0;
+      opacity: 0;
+      transform: translateY(24px);
+    }
+    to {
+      max-height: 120px;
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .typing-msg {
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .typing-av {
+    --s: 32px;
+    margin-top: 24px;
+    object-fit: cover;
+    object-position: 50% 35%;
+    background: var(--primary-soft);
+  }
+  .typing-body {
+    gap: 4px;
+  }
+  .typing-name {
+    padding: 0 6px;
+    font: 700 14px/18px var(--font-sans);
+    letter-spacing: 0.01em;
+  }
+  .typing-line {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .typing-dots {
+    display: flex;
+    gap: 5px;
+    padding: 12px 14px;
+    border-radius: 18px 18px 18px 6px;
+    background: var(--surface-raised);
+  }
+  .typing-dots i {
+    display: block;
+    width: 9px;
+    height: 9px;
+    border-radius: 50%;
+    background: var(--ink-muted);
+    animation: typing-blink 1.2s ease-in-out infinite;
+  }
+  .typing-dots i:nth-child(2) {
+    animation-delay: 0.2s;
+  }
+  .typing-dots i:nth-child(3) {
+    animation-delay: 0.4s;
+  }
+  @keyframes typing-blink {
+    0%,
+    80%,
+    100% {
+      opacity: 0.3;
+      transform: none;
+    }
+    40% {
+      opacity: 1;
+      transform: translateY(-3px);
+    }
+  }
+  .typing-label {
+    font: 500 14px/20px var(--font-sans);
+    color: var(--ink-muted);
+  }
+
+  /* Saat dijeda, animasi CSS ikut berhenti */
+  .is-paused .chat-typing.is-entering,
+  .is-paused .typing-dots i {
+    animation-play-state: paused;
+  }
+
+  /* Chip "Dijeda" (layar sentuh) */
+  .pause-chip {
+    position: relative;
+    align-self: flex-end;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    margin: 6px 0 0;
+    padding: 0 12px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--secondary);
+    background: var(--primary-soft);
+    color: var(--ink);
+    font: 700 12px/1 var(--font-sans);
+    cursor: pointer;
+  }
+  .pause-chip svg {
+    color: var(--tertiary);
+  }
+  /* Area sentuh lebih tinggi dari tampilannya */
+  .pause-chip::after {
+    content: '';
+    position: absolute;
+    inset: -6px 0;
+  }
+  .pause-chip[hidden] {
+    display: none;
+  }
+
+  @media (min-width: 1100px) {
+    .hero-chat {
+      flex: none;
+      height: 480px;
+      max-height: none;
+    }
+    .chat-window {
+      --deco-bleed: 12px;
+      gap: 16px;
+      mask-image: linear-gradient(to bottom, transparent 0, #000 140px);
+    }
+    .typing-msg {
+      gap: 12px;
+    }
+    .typing-av {
+      --s: 48px;
+    }
+    .typing-body {
+      gap: 6px;
+    }
+    .typing-line {
+      gap: 12px;
+    }
+    .typing-dots {
+      gap: 6px;
+      padding: 16px 20px;
+      border-radius: 22px 22px 22px 6px;
+    }
+    .typing-label {
+      font-size: 16px;
+      line-height: 22px;
+    }
+  }
+</style>
+
+<script>
+  import { chatConfig, chatScript, messageTime, type ChatMessage } from '../../data/chat-script';
+  import { getUser, splitUsername } from '../../data/users';
+  import { getSticker, stickerAlt, stickers, type Reaction } from '../../data/stickers';
+  import { createReactionButton, getReactionCount, setReactionCount } from '../../lib/reactions';
+  import { PauseController, canHover, pauseWhileHoveringContent, prefersReducedMotion } from '../../lib/motion';
+  import { heroClock } from '../../lib/hero-clock';
+  import { EVENTS_UI, emit } from '../../lib/events';
+  import { setAvatarDecoration } from '../../lib/avatar';
+  import { imageSrcset } from '../../data/assets';
+
+  const root = document.querySelector<HTMLElement>('[data-chat-feed]');
+  const chatWindow = root?.querySelector<HTMLElement>('[data-chat-window]');
+  const typingRow = root?.querySelector<HTMLElement>('[data-chat-typing]');
+  const resumeChip = root?.querySelector<HTMLButtonElement>('[data-chat-resume]');
+
+  if (root && chatWindow && typingRow && resumeChip && !prefersReducedMotion()) {
+    startChat(root, chatWindow, typingRow, resumeChip);
+  }
+
+  function startChat(root: HTMLElement, chatWindow: HTMLElement, typingRow: HTMLElement, resumeChip: HTMLButtonElement) {
+    // Jam anak dari heroClock: ikut pause saat tab tidak aktif, overlay terbuka, atau
+    // user berinteraksi dengan chat/mading. Pause karena di luar layar hanya untuk chat.
+    const clock = new PauseController(heroClock);
+    const touchMode = !canHover();
+
+    // ---- Helper DOM -------------------------------------------------------
+
+    const slot = <T extends HTMLElement = HTMLElement>(scope: ParentNode, name: string) =>
+      scope.querySelector<T>(`[data-slot="${name}"]`);
+
+    const pick = <T,>(items: T[]): T => items[Math.floor(Math.random() * items.length)];
+
+    function template(name: string): DocumentFragment {
+      const tpl = root.querySelector<HTMLTemplateElement>(`template[data-tpl="${name}"]`);
+      if (!tpl) throw new Error(`Template ChatFeed tidak ditemukan: ${name}`);
+      return tpl.content;
+    }
+
+    /** Tulis username; simbol (✧ ♡) dibungkus span supaya memakai font simbol. */
+    function setUsername(el: HTMLElement, name: string) {
+      const { pre, sym, post } = splitUsername(name);
+      const parts: (string | Node)[] = [pre];
+      if (sym) {
+        const span = document.createElement('span');
+        span.className = 'username-sym';
+        span.textContent = sym;
+        parts.push(span);
+      }
+      parts.push(post);
+      el.replaceChildren(...parts);
+    }
+
+    /** Tombol reaksi baru, di-clone dari cetakan Reactions. */
+    function makeReaction(reaction: Reaction): HTMLButtonElement {
+      return createReactionButton(template('reaction').querySelector<HTMLElement>('.react')!, reaction);
+    }
+
+    /** Isi elemen pesan (hasil clone cetakan) dengan data `message`. */
+    function fillMessage(row: HTMLElement, message: ChatMessage, time: string) {
+      const user = getUser(message.userId);
+      row.dataset.messageId = message.id;
+
+      const avatar = slot<HTMLImageElement>(row, 'avatar')!;
+      avatar.src = user.avatarUrl;
+      avatar.alt = user.avatarAlt;
+      setAvatarDecoration(row, user);
+      const name = slot(row, 'name')!;
+      name.style.color = user.nameColor;
+      setUsername(name, user.username);
+      row.querySelectorAll<HTMLElement>('[data-slot="time"]').forEach((el) => (el.textContent = time));
+
+      if (message.kind === 'text') {
+        slot(row, 'text')!.textContent = message.text;
+        slot(row, 'bubble')!.classList.toggle('is-bold', !!message.bold);
+      } else if (message.kind === 'fanart') {
+        const img = slot<HTMLImageElement>(row, 'image')!;
+        img.srcset = imageSrcset(message.image);
+        img.src = message.image.url;
+        img.alt = message.image.alt;
+        const trigger = slot(row, 'image-trigger')!;
+        trigger.dataset.lightboxSrc = message.image.url;
+        trigger.dataset.lightboxAlt = message.image.alt;
+        trigger.dataset.lightboxWidth = String(message.image.width);
+        trigger.dataset.lightboxHeight = String(message.image.height);
+        trigger.dataset.lightboxSender = user.username;
+        trigger.dataset.lightboxCaption = message.caption;
+        slot(row, 'caption')!.textContent = message.caption;
+        slot(row, 'saved')!.hidden = true;
+      } else {
+        const sticker = getSticker(message.stickerId);
+        const img = slot<HTMLImageElement>(row, 'sticker')!;
+        img.src = sticker.url;
+        img.alt = stickerAlt(sticker);
+        const trigger = slot(row, 'sticker-trigger')!;
+        trigger.dataset.lightboxSrc = sticker.url;
+        trigger.dataset.lightboxAlt = stickerAlt(sticker);
+        trigger.dataset.lightboxSender = user.username;
+        trigger.dataset.lightboxCaption = `Sticker ${sticker.label}`;
+      }
+
+      const reactions = row.querySelector<HTMLElement>('[data-reactions]');
+      if (reactions) {
+        if (message.reactions?.length) {
+          reactions.dataset.targetId = message.id;
+          reactions.dataset.authorId = message.userId;
+          reactions.replaceChildren(...message.reactions.map(makeReaction));
+        } else {
+          reactions.remove();
+        }
+      }
+    }
+
+    // ---- Langkah-langkah animasi ------------------------------------------
+
+    function showTyping(message: ChatMessage) {
+      const user = getUser(message.userId);
+      const avatar = slot<HTMLImageElement>(typingRow, 'avatar')!;
+      avatar.src = user.avatarUrl;
+      avatar.alt = user.avatarAlt;
+      setAvatarDecoration(typingRow, user);
+      const name = slot(typingRow, 'name')!;
+      name.style.color = user.nameColor;
+      setUsername(name, user.username);
+      typingRow.hidden = false;
+      typingRow.classList.remove('is-entering');
+      void typingRow.offsetWidth; // restart animasi
+      typingRow.classList.add('is-entering');
+    }
+
+    function postMessage(message: ChatMessage, time: string): HTMLElement {
+      const row = template(message.kind).querySelector<HTMLElement>('[data-chat-row]')!.cloneNode(true) as HTMLElement;
+      fillMessage(row, message, time);
+      row.classList.add('is-entering');
+      row.addEventListener('animationend', () => row.classList.remove('is-entering'), { once: true });
+      typingRow.hidden = true;
+      chatWindow.insertBefore(row, typingRow);
+      return row;
+    }
+
+    /** Buang pesan yang sudah sepenuhnya lewat di atas jendela chat, supaya DOM tidak terus bertambah. */
+    function removeScrolledOutRows() {
+      const top = chatWindow.getBoundingClientRect().top;
+      chatWindow.querySelectorAll<HTMLElement>('[data-chat-row]').forEach((row) => {
+        if (row.getBoundingClientRect().bottom < top) row.remove();
+      });
+    }
+
+    /** Fanart "masuk mading": kirim event untuk MadingPanel, lalu tampilkan label. */
+    async function saveToMading(row: HTMLElement, message: ChatMessage, delayMs: number) {
+      await clock.wait(delayMs);
+      if (!row.isConnected) return;
+      emit(EVENTS_UI.fanartToMading, { messageId: message.id, image: slot<HTMLImageElement>(row, 'image') });
+      if (!touchMode) await clock.wait(chatConfig.flyMs);
+      const label = slot(row, 'saved');
+      if (!label || !row.isConnected) return;
+      label.hidden = false;
+      label.classList.add('is-new');
+    }
+
+    /** Naikkan satu angka reaksi, atau tambahkan reaksi jenis baru ke pesan teks. */
+    function bumpReaction() {
+      const rows = [...chatWindow.querySelectorAll<HTMLElement>('[data-chat-row]')]
+        .slice(-5)
+        .filter((row) => row.querySelector('[data-reactions] .react'));
+      if (!rows.length) return;
+
+      const row = pick(rows);
+      const container = row.querySelector<HTMLElement>('[data-reactions]')!;
+      const buttons = [...container.querySelectorAll<HTMLElement>('.react')];
+      const present = new Set(buttons.map((button) => button.dataset.stickerId));
+      const fresh = stickers.filter((sticker) => !present.has(sticker.id));
+
+      if (row.dataset.kind === 'text' && buttons.length < 3 && fresh.length && Math.random() < chatConfig.newReactionChance) {
+        const button = makeReaction({ stickerId: pick(fresh).id, count: 1 });
+        button.classList.add('is-new');
+        button.addEventListener('animationend', () => button.classList.remove('is-new'), { once: true });
+        container.append(button);
+        return;
+      }
+
+      const button = pick(buttons);
+      setReactionCount(button, getReactionCount(button) + 1);
+      const label = button.querySelector('b')!;
+      label.classList.remove('is-bump');
+      void label.offsetWidth; // restart animasi
+      label.classList.add('is-bump');
+    }
+
+    // ---- Loop ---------------------------------------------------------------
+
+    async function runChat() {
+      let seq: number = chatConfig.initialVisible;
+      await clock.wait(chatConfig.startDelayMs);
+      for (;;) {
+        const message = chatScript[seq % chatScript.length];
+        removeScrolledOutRows();
+        showTyping(message);
+        await clock.wait(chatConfig.typingMs);
+        const row = postMessage(message, messageTime(seq));
+        if (message.kind === 'fanart') void saveToMading(row, message, chatConfig.saveDelayMs);
+        seq += 1;
+        await clock.wait(chatConfig.gapMs);
+      }
+    }
+
+    async function runReactionBumps() {
+      for (;;) {
+        await clock.wait(chatConfig.reactionBumpMs);
+        bumpReaction();
+      }
+    }
+
+    // ---- Pause --------------------------------------------------------------
+
+    clock.onChange((paused) => root.classList.toggle('is-paused', paused));
+
+    // Tab tidak aktif dan overlay terbuka: sudah ditangani heroClock.
+
+    // Jeda yang harus dilepas saat chat keluar layar (diisi di bawah). Tanpa ini, chat yang
+    // diketuk lalu ditinggal scroll tetap diam saat pengunjung kembali ke hero.
+    const releaseOnLeave: (() => void)[] = [() => heroClock.resume('chat-hover')];
+
+    // Chat di luar layar
+    new IntersectionObserver(([entry]) => {
+      clock.set('offscreen', !entry.isIntersecting);
+      if (!entry.isIntersecting) releaseOnLeave.forEach((release) => release());
+    }).observe(root);
+
+    // Fokus keyboard di dalam chat (menghentikan chat dan mading). Hanya fokus keyboard
+    // (:focus-visible): tombol yang diklik mouse juga dapat fokus, dan fokus itu tetap tinggal
+    // walau halaman di-scroll, sehingga chat jadi diam terus.
+    root.addEventListener('focusin', (event) => {
+      if ((event.target as Element).matches(':focus-visible')) heroClock.pause('chat-focus');
+    });
+    root.addEventListener('focusout', (event) => {
+      if (!root.contains(event.relatedTarget as Node | null)) heroClock.resume('chat-focus');
+    });
+
+    if (touchMode) {
+      // Ketuk chat untuk jeda/lanjut (ketukan pada tombol, misalnya reaksi, diabaikan)
+      let tapPaused = false;
+      const setTapPaused = (paused: boolean) => {
+        tapPaused = paused;
+        heroClock.set('chat-tap', paused);
+        resumeChip.hidden = !paused;
+      };
+      chatWindow.addEventListener('click', (event) => {
+        if ((event.target as HTMLElement).closest('button, a')) return;
+        setTapPaused(!tapPaused);
+      });
+      resumeChip.addEventListener('click', () => setTapPaused(false));
+      releaseOnLeave.push(() => setTapPaused(false));
+    } else {
+      // Hanya saat kursor di atas konten, bukan di area kosong jendela chat.
+      pauseWhileHoveringContent(
+        root,
+        '.chat-av, .chat-name, .chat-bubble, .chat-post, .chat-sticker-trigger, .react, .typing-av, .typing-name, .typing-dots',
+        heroClock,
+        'chat-hover',
+      );
+    }
+
+    // ---- Mulai --------------------------------------------------------------
+
+    // Fanart yang sudah tampil sejak awal juga "masuk mading", sedikit lebih lambat.
+    initialFanarts().forEach(({ row, message }) => {
+      slot(row, 'saved')!.hidden = true;
+      void saveToMading(row, message, chatConfig.firstSaveDelayMs);
+    });
+
+    void runChat();
+    void runReactionBumps();
+
+    function initialFanarts() {
+      return chatScript.slice(0, chatConfig.initialVisible).flatMap((message) => {
+        const row = message.kind === 'fanart' ? chatWindow.querySelector<HTMLElement>(`[data-message-id="${message.id}"]`) : null;
+        return row ? [{ row, message }] : [];
+      });
+    }
+  }
+</script>

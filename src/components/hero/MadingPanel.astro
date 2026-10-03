@@ -1,0 +1,552 @@
+---
+/**
+ * MadingPanel: post komunitas (data dan timing di src/data/mading-posts.ts).
+ *
+ * Desktop (>= 1100px): kolom di kanan hero. Kartu bertumpuk (depan/belakang selang-seling)
+ * dan pelan-pelan bergeser ke atas; kartu teratas yang sudah lewat dipindah ke bawah, jadi
+ * feed berputar tanpa henti dan TIDAK PERNAH bergerak ke bawah. Fanart dari ChatFeed "terbang"
+ * melengkung ke bawah feed, masuk antrean, lalu feed dipercepat sebentar sampai kartunya muncul
+ * dari bawah. Kalau fanart yang sama masih terlihat, kartunya cukup berdenyut.
+ * Sesekali angka reaksi kartu yang terlihat naik.
+ *
+ * Mobile: section sendiri di bawah hero, kartu dalam satu baris yang digeser ke samping.
+ * Fanart dari chat muncul sebagai kartu pertama.
+ *
+ * Pause: ikut heroClock (tab tidak aktif, overlay, interaksi dengan chat), ditambah hover di atas
+ * kartu (bukan area kosong kolom) / fokus di mading (menghentikan chat juga, sesuai artboard) dan saat mading di luar layar.
+ * Reduced motion: feed diam; fanart dari chat langsung ditaruh sebagai kartu pertama.
+ */
+import { madingConfig, madingPosts, type MadingPost } from '../../data/mading-posts';
+import { chatScript, type FanartMessage } from '../../data/chat-script';
+import { ANCHORS } from '../../data/content';
+import MadingCard from './MadingCard.astro';
+
+// Cetakan kartu fanart dari chat harus punya gambar, jadi dibuat dari post fanart di chat-script.
+const fanart = chatScript.find((m): m is FanartMessage => m.kind === 'fanart');
+if (!fanart) throw new Error('chat-script.ts butuh minimal satu pesan fanart');
+const templatePost: MadingPost = {
+  id: 'template',
+  authorId: fanart.userId,
+  ago: madingConfig.justNow,
+  image: { ...fanart.image, position: '50% 30%' },
+  caption: fanart.caption,
+  reactions: fanart.reactions ?? [],
+};
+---
+
+<section id={ANCHORS.mading} aria-labelledby="mading-title" class="mading" data-mading>
+  <div class="mading-head container-page">
+    <h2 id="mading-title" class="mading-title">{madingConfig.title}</h2>
+    <p class="mading-note">{madingConfig.note}</p>
+  </div>
+
+  <div class="mading-vp" data-mading-viewport>
+    <ul class="mading-track" data-mading-track>
+      {
+        // Urutan: post pertama, slot ajakan creator (di posisi kedua supaya cepat terlihat di mobile),
+        // lalu post lainnya. Depan/belakang selang-seling mengikuti urutan akhir.
+        [madingPosts[0], 'promo' as const, ...madingPosts.slice(1)].map((item, index) =>
+          item === 'promo' ? <MadingCard promo front={index % 2 === 0} /> : <MadingCard post={item} front={index % 2 === 0} />,
+        )
+      }
+    </ul>
+  </div>
+
+  <!-- Cetakan kartu untuk fanart yang masuk dari chat -->
+  <template data-tpl="mading-card"><MadingCard post={templatePost} front={true} /></template>
+</section>
+
+<style>
+  /* ---- Mobile ---- */
+  .mading {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 32px 0;
+  }
+  .mading-head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .mading-title {
+    margin: 0;
+    font: 800 18px/24px var(--font-sans);
+    color: var(--ink);
+  }
+  .mading-note {
+    margin: 0;
+    font: 500 16px/22px var(--font-sans);
+    color: var(--ink-muted);
+  }
+  .mading-track {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin: 0;
+    padding: 2px var(--space-5) 4px;
+    list-style: none;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: var(--space-5);
+    scrollbar-width: none;
+  }
+  .mading-track::-webkit-scrollbar {
+    display: none;
+  }
+  @media (min-width: 768px) {
+    .mading-track {
+      padding-inline: var(--space-8);
+      scroll-padding-left: var(--space-8);
+    }
+  }
+
+  /* ---- Desktop: kolom feed di kanan hero ---- */
+  @media (min-width: 1100px) {
+    .mading {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      right: var(--space-20);
+      width: var(--mading-w);
+      padding: 0;
+    }
+    /* Judul hanya untuk screen reader di desktop */
+    .mading-head {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+    .mading-vp {
+      position: absolute;
+      inset: 0;
+      overflow: hidden;
+      /* Tepi atas dan bawah memudar (artboard: 150px atas, 110px bawah) */
+      mask-image: linear-gradient(to bottom, transparent 0, #000 150px, #000 calc(100% - 110px), transparent 100%);
+    }
+    .mading-track {
+      display: block;
+      padding: 0;
+      overflow: visible;
+      /* Posisi awal sebelum script jalan (madingConfig.startOffset) */
+      transform: translateY(-150px);
+      will-change: transform;
+    }
+  }
+</style>
+
+<!-- Kartu terbang (salinan kartu mading, dari chat ke feed). Dibuat oleh script, jadi style global. -->
+<style is:global>
+  .md-flyer {
+    position: fixed;
+    left: 0;
+    top: 0;
+    /* Di bawah navbar (z-index 40), seperti di artboard */
+    z-index: 30;
+    transform-origin: 0 0;
+    pointer-events: none;
+  }
+</style>
+
+<script>
+  import { madingConfig } from '../../data/mading-posts';
+  import { chatScript, type FanartMessage } from '../../data/chat-script';
+  import { getUser, splitUsername } from '../../data/users';
+  import { PauseController, canHover, pauseWhileHoveringContent, prefersReducedMotion } from '../../lib/motion';
+  import { heroClock } from '../../lib/hero-clock';
+  import { EVENTS_UI, on } from '../../lib/events';
+  import { setAvatarDecoration } from '../../lib/avatar';
+  import { imageSrcset } from '../../data/assets';
+  import { createReactionButton, getReactionCount, setReactionCount } from '../../lib/reactions';
+
+  const root = document.querySelector<HTMLElement>('[data-mading]');
+  const viewport = root?.querySelector<HTMLElement>('[data-mading-viewport]');
+  const track = root?.querySelector<HTMLElement>('[data-mading-track]');
+  const cardTemplate = root?.querySelector<HTMLTemplateElement>('template[data-tpl="mading-card"]');
+
+  if (root && viewport && track && cardTemplate) startMading(root, viewport, track, cardTemplate);
+
+  function startMading(root: HTMLElement, viewport: HTMLElement, track: HTMLElement, cardTemplate: HTMLTemplateElement) {
+    const reduce = prefersReducedMotion();
+    const desktop = window.matchMedia('(min-width: 1100px)');
+    const clock = new PauseController(heroClock);
+    const { overlap } = madingConfig;
+
+    const slot = <T extends HTMLElement = HTMLElement>(scope: ParentNode, name: string) =>
+      scope.querySelector<T>(`[data-slot="${name}"]`);
+    const pick = <T,>(items: T[]): T => items[Math.floor(Math.random() * items.length)];
+    const cards = () => [...track.children] as HTMLElement[];
+
+    /** Restart animasi CSS: hapus kelas, paksa reflow, pasang lagi; hapus lagi setelah selesai. */
+    function playOnce(el: HTMLElement, className: string) {
+      el.classList.remove(className);
+      void el.offsetWidth;
+      el.classList.add(className);
+      el.addEventListener('animationend', () => el.classList.remove(className), { once: true });
+    }
+
+    // ---- Kartu fanart dari chat -------------------------------------------
+
+    function setUsername(el: HTMLElement, name: string) {
+      const { pre, sym, post } = splitUsername(name);
+      const parts: (string | Node)[] = [pre];
+      if (sym) {
+        const span = document.createElement('span');
+        span.className = 'username-sym';
+        span.textContent = sym;
+        parts.push(span);
+      }
+      parts.push(post);
+      el.replaceChildren(...parts);
+    }
+
+    function buildCard(message: FanartMessage): HTMLElement {
+      const card = cardTemplate.content.querySelector<HTMLElement>('[data-mading-card]')!.cloneNode(true) as HTMLElement;
+      const author = getUser(message.userId);
+      const postId = `chat-${message.id}`;
+      card.dataset.postId = postId;
+      card.dataset.fromChat = '';
+
+      const avatar = slot<HTMLImageElement>(card, 'avatar')!;
+      avatar.src = author.avatarUrl;
+      setAvatarDecoration(card, author);
+      setUsername(slot(card, 'name')!, author.username);
+      slot(card, 'ago')!.textContent = madingConfig.justNow;
+
+      const img = slot<HTMLImageElement>(card, 'image')!;
+      img.srcset = imageSrcset(message.image);
+      img.src = message.image.url;
+      img.alt = message.image.alt;
+      img.width = message.image.width;
+      img.height = message.image.height;
+      img.style.objectPosition = '50% 30%';
+      const trigger = slot(card, 'image-trigger')!;
+      trigger.dataset.lightboxSrc = message.image.url;
+      trigger.dataset.lightboxAlt = message.image.alt;
+      trigger.dataset.lightboxWidth = String(message.image.width);
+      trigger.dataset.lightboxHeight = String(message.image.height);
+      trigger.dataset.lightboxSender = author.username;
+      trigger.dataset.lightboxCaption = message.caption;
+      trigger.setAttribute('aria-label', `Lihat gambar lebih besar: ${message.image.alt}`);
+      slot(card, 'caption')!.textContent = message.caption;
+
+      const reactions = card.querySelector<HTMLElement>('[data-reactions]')!;
+      const sample = reactions.querySelector<HTMLElement>('.react')!;
+      reactions.dataset.targetId = postId;
+      reactions.dataset.authorId = message.userId;
+      reactions.replaceChildren(...(message.reactions ?? []).slice(0, 4).map((reaction) => createReactionButton(sample, reaction)));
+      return card;
+    }
+
+    // ---- Feed desktop: selalu bergeser ke atas, berputar ----------------------
+    //
+    // Feed tidak pernah bergerak ke bawah. Fanart baru dari chat disisipkan di bawah tepi
+    // bawah feed (belum terlihat), lalu feed dipercepat sebentar sampai kartu itu muncul dari
+    // bawah, seperti carousel yang berputar lebih cepat sesaat.
+
+    let offset: number = madingConfig.startOffset;
+    let frame = 0;
+    let lastTime = 0;
+    /** Percepatan sementara: total jarak ekstra, yang sudah ditempuh, dan durasinya (ms). */
+    let boost: { total: number; done: number; elapsed: number; duration: number } | null = null;
+
+    const applyOffset = () => (track.style.transform = `translateY(${offset}px)`);
+    const easeInOut = (p: number) => (p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2);
+    /** Kurva landai untuk percepatan feed (kecepatan puncak ~1.6x rata-rata). */
+    const easeInOutSine = (p: number) => -(Math.cos(Math.PI * p) - 1) / 2;
+
+    /** Jarak satu kartu ke kartu berikutnya (tinggi dikurangi tumpang). */
+    const step = (card: HTMLElement) => card.offsetHeight - overlap;
+
+    function recycleTopCard() {
+      const first = track.firstElementChild as HTMLElement | null;
+      if (!first || track.children.length < 2) return;
+      if (offset < -(step(first) + madingConfig.recycleMargin)) {
+        offset += step(first);
+        track.append(first);
+      }
+    }
+
+    function tick(time: number) {
+      frame = 0;
+      if (!desktop.matches || clock.paused) return;
+      const dt = lastTime ? Math.min(50, time - lastTime) : 0;
+      lastTime = time;
+      offset -= (madingConfig.scrollSpeed * dt) / 1000;
+      if (boost) {
+        boost.elapsed = Math.min(boost.duration, boost.elapsed + dt);
+        const target = boost.total * easeInOutSine(boost.elapsed / boost.duration);
+        offset -= target - boost.done;
+        boost.done = target;
+        if (boost.elapsed >= boost.duration) boost = null;
+      }
+      recycleTopCard();
+      applyOffset();
+      frame = requestAnimationFrame(tick);
+    }
+
+    function startScroll() {
+      if (reduce || frame || !desktop.matches || clock.paused) return;
+      lastTime = 0;
+      frame = requestAnimationFrame(tick);
+    }
+
+    function stopScroll() {
+      cancelAnimationFrame(frame);
+      frame = 0;
+    }
+
+    /** Percepat feed ke atas sejauh `distance` px ekstra selama `duration` ms (di atas kecepatan normal). */
+    function startBoost(distance: number, duration: number) {
+      const remaining = boost ? boost.total - boost.done : 0;
+      boost = { total: remaining + distance, done: 0, elapsed: 0, duration };
+    }
+
+    /**
+     * Feed desktop berputar dengan memindahkan kartu teratas ke bawah. Supaya bagian bawah feed
+     * tidak pernah kosong, total tinggi kartu harus lebih dari tinggi feed + satu kartu. Kalau
+     * kartunya sedikit, kartu yang ada diulang (salinan ditandai data-clone).
+     */
+    function fillLoop() {
+      if (!desktop.matches) return;
+      const originals = cards().filter((card) => !card.hasAttribute('data-clone'));
+      if (!originals.length) return;
+      const needed = viewport.offsetHeight + Math.max(...originals.map(step)) + madingConfig.recycleMargin + 200;
+      let total = cards().reduce((sum, card) => sum + step(card), 0);
+      for (let i = 0; total < needed && i < 24; i++) {
+        const clone = originals[i % originals.length].cloneNode(true) as HTMLElement;
+        clone.dataset.clone = '';
+        clone.removeAttribute('data-from-chat');
+        track.append(clone);
+        total += step(clone);
+      }
+    }
+
+    const removeClones = () => track.querySelectorAll('[data-clone]').forEach((clone) => clone.remove());
+
+    /** Kartu terlihat di area feed (bukan di balik gradasi atas/bawah). */
+    function isVisible(card: HTMLElement): boolean {
+      const vp = viewport.getBoundingClientRect();
+      const rect = card.getBoundingClientRect();
+      return rect.bottom > vp.top + 40 && rect.top < vp.bottom - 40;
+    }
+
+    /** Titik sisip: kartu pertama yang tepi atasnya sudah di bawah tepi bawah feed (belum terlihat). */
+    function queueIndex(): number {
+      const bottom = viewport.getBoundingClientRect().bottom;
+      const index = cards().findIndex((card) => card.getBoundingClientRect().top >= bottom);
+      return index === -1 ? track.children.length : index;
+    }
+
+    /**
+     * Animasi kartu terbang dari gambar di chat ke posisi `destinationTop` di feed.
+     * Yang terbang adalah salinan persis kartu `card`, jadi saat mendarat bisa "melebur"
+     * ke kartu aslinya tanpa terlihat berganti. Mengembalikan elemen terbang (belum dihapus).
+     */
+    async function fly(source: HTMLImageElement, card: HTMLElement, destinationTop: number, duration: number) {
+      const article = card.querySelector<HTMLElement>('.md-card')!;
+      const width = article.offsetWidth;
+      const height = article.offsetHeight;
+
+      const flyer = document.createElement('div');
+      flyer.className = 'md-flyer';
+      flyer.setAttribute('aria-hidden', 'true');
+      flyer.inert = true;
+      // Lebar wadah = lebar kolom kartu (li), karena lebar .md-card dihitung relatif terhadapnya.
+      flyer.style.width = `${card.offsetWidth}px`;
+      const clone = article.cloneNode(true) as HTMLElement;
+      clone.classList.remove('is-back');
+      clone.classList.add('is-front');
+      flyer.append(clone);
+      document.body.append(flyer);
+
+      const from = source.getBoundingClientRect();
+      const s0 = madingConfig.flyStartScale;
+      const fx = from.left + (from.width - width * s0) / 2;
+      const fy = from.top + (from.height - height * s0) / 2;
+      const tx = card.getBoundingClientRect().left;
+      const ty = destinationTop;
+
+      // Lintasan melengkung, di-sample jadi keyframe (easing sudah dihitung di sini).
+      // Bayangan pink sticker memudar menjelang mendarat, supaya cocok dengan kartu aslinya.
+      const frames: Keyframe[] = [];
+      const steps = 36;
+      for (let i = 0; i <= steps; i++) {
+        const p = i / steps;
+        const e = easeInOut(p);
+        const x = fx + (tx - fx) * e;
+        const y = fy + (ty - fy) * e - madingConfig.flyArc * Math.sin(Math.PI * e);
+        const scale = s0 + (1 - s0) * e;
+        const rotate = 2 * Math.sin(Math.PI * e);
+        const opacity = p < 0.08 ? p / 0.08 : 1;
+        const shadow = 0.9 * (1 - Math.max(0, (p - 0.75) / 0.25));
+        frames.push({
+          transform: `translate(${x}px, ${y}px) scale(${scale}) rotate(${rotate}deg)`,
+          opacity,
+          filter: `drop-shadow(6px 6px 0 rgb(245 180 207 / ${shadow.toFixed(3)}))`,
+        });
+      }
+
+      const animation = flyer.animate(frames, { duration, easing: 'linear', fill: 'forwards' });
+      const stopSync = clock.onChange((paused) => (paused ? animation.pause() : animation.play()));
+      if (clock.paused) animation.pause();
+      try {
+        await animation.finished;
+      } finally {
+        stopSync();
+      }
+      return flyer;
+    }
+
+    /** Kartu terbang memudar di atas kartu aslinya, lalu dihapus. */
+    async function meltAway(flyer: HTMLElement) {
+      try {
+        await flyer.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, easing: 'ease-out', fill: 'forwards' }).finished;
+      } finally {
+        flyer.remove();
+      }
+    }
+
+    async function landOnDesktop(message: FanartMessage, image: HTMLImageElement | null) {
+      const canFly = !reduce && !!image?.isConnected;
+      const existing = track.querySelector<HTMLElement>('[data-from-chat]');
+
+      // Fanart yang sama dari putaran sebelumnya masih terlihat: terbang ke kartu itu
+      // (posisinya saat mendarat sudah memperhitungkan gerak feed), lalu cahaya pink.
+      if (existing && isVisible(existing)) {
+        if (canFly) {
+          const duration = 1000;
+          const landTop = existing.getBoundingClientRect().top - (madingConfig.scrollSpeed * duration) / 1000;
+          await meltAway(await fly(image!, existing, landTop, duration));
+        }
+        if (!reduce) playOnce(existing, 'is-pulse');
+        return;
+      }
+
+      // Masih ada tapi di luar pandangan: angkat dulu. Kalau letaknya di atas (sudah lewat),
+      // offset dikoreksi supaya kartu yang terlihat tidak ikut bergeser.
+      if (existing) {
+        const above = existing.getBoundingClientRect().bottom <= viewport.getBoundingClientRect().top;
+        const existingStep = step(existing);
+        existing.remove();
+        if (above) {
+          offset += existingStep;
+          applyOffset();
+        }
+      }
+
+      // Kartu asli masuk antrean di bawah feed (belum terlihat).
+      const card = buildCard(message);
+      track.insertBefore(card, cards()[queueIndex()] ?? null);
+      if (reduce) return;
+
+      // Feed dipercepat BERSAMAAN dengan kartu terbang, diatur supaya kartu asli tiba di posisi
+      // mendarat tepat saat kartu terbang sampai. Lalu kartu terbang melebur ke kartu aslinya.
+      const landTop = viewport.getBoundingClientRect().bottom - madingConfig.landFromBottom;
+      const distance = Math.max(0, card.getBoundingClientRect().top - landTop);
+      const duration = Math.min(1700, Math.max(1000, (distance / 700) * 1000));
+      startBoost(Math.max(0, distance - (madingConfig.scrollSpeed * duration) / 1000), duration);
+
+      if (!canFly) return;
+      card.style.visibility = 'hidden';
+      const flyer = await fly(image!, card, landTop, duration);
+      card.style.visibility = '';
+      await meltAway(flyer);
+      playOnce(card, 'is-pulse');
+    }
+
+    function landOnMobile(message: FanartMessage) {
+      track.querySelector('[data-from-chat]')?.remove();
+      const card = buildCard(message);
+      track.prepend(card);
+      if (!reduce) playOnce(card, 'is-new');
+    }
+
+    on(EVENTS_UI.fanartToMading, ({ messageId, image }) => {
+      const message = chatScript.find((m): m is FanartMessage => m.id === messageId && m.kind === 'fanart');
+      if (!message) return;
+      if (desktop.matches) void landOnDesktop(message, image);
+      else landOnMobile(message);
+    });
+
+    // ---- Angka reaksi kartu yang terlihat sesekali naik (desktop) ------------
+
+    async function bumpLoop() {
+      for (;;) {
+        await clock.wait(madingConfig.bumpMs);
+        if (!desktop.matches || Math.random() >= madingConfig.bumpChance) continue;
+        const top = viewport.getBoundingClientRect().top;
+        const visible = cards().filter((card) => {
+          const y = card.getBoundingClientRect().top - top;
+          return y > 60 && y < 760 && card.querySelector('.react');
+        });
+        if (!visible.length) continue;
+        const button = pick([...pick(visible).querySelectorAll<HTMLElement>('.react')]);
+        setReactionCount(button, getReactionCount(button) + 1);
+        const count = button.querySelector<HTMLElement>('b');
+        if (count) playOnce(count, 'is-bump');
+      }
+    }
+
+    // ---- Pause ----------------------------------------------------------------
+
+    clock.onChange((paused) => {
+      root.classList.toggle('is-paused', paused);
+      if (paused) stopScroll();
+      else startScroll();
+    });
+
+    new IntersectionObserver(([entry]) => {
+      clock.set('offscreen', !entry.isIntersecting);
+      // Lepas jeda hover yang mungkin tertinggal saat mading di-scroll keluar layar
+      if (!entry.isIntersecting) heroClock.resume('mading-hover');
+    }).observe(root);
+
+    if (canHover()) {
+      // Hanya saat kursor di atas kartu, bukan di area kosong kolom mading.
+      pauseWhileHoveringContent(root, '.md-card', heroClock, 'mading-hover');
+    }
+    // Hanya fokus keyboard; fokus dari klik mouse (misalnya tombol reaksi) tidak menjeda,
+    // karena fokus itu tetap tinggal walau halaman di-scroll.
+    root.addEventListener('focusin', (event) => {
+      if ((event.target as Element).matches(':focus-visible')) heroClock.pause('mading-focus');
+    });
+    root.addEventListener('focusout', (event) => {
+      if (!root.contains(event.relatedTarget as Node | null)) heroClock.resume('mading-focus');
+    });
+
+    // Pindah antara layout desktop dan mobile (misalnya jendela di-resize)
+    desktop.addEventListener('change', () => {
+      stopScroll();
+      if (desktop.matches) {
+        offset = madingConfig.startOffset;
+        fillLoop();
+        applyOffset();
+        startScroll();
+      } else {
+        removeClones();
+        track.style.transform = '';
+      }
+    });
+
+    // ---- Mulai ------------------------------------------------------------------
+
+    if (reduce) {
+      // ChatFeed tidak beranimasi; tampilkan fanart dari chat langsung sebagai kartu pertama.
+      const fanart = chatScript.find((m): m is FanartMessage => m.kind === 'fanart');
+      if (fanart) track.prepend(buildCard(fanart));
+      if (desktop.matches) applyOffset();
+      return;
+    }
+
+    if (desktop.matches) {
+      fillLoop();
+      applyOffset();
+    }
+    startScroll();
+    void bumpLoop();
+  }
+</script>

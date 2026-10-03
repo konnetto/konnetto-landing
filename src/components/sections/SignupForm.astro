@@ -1,0 +1,764 @@
+---
+/**
+ * SignupForm (#founding): "Bangun Konnetto bareng kami." dengan tab "Aku fans" / "Aku creator".
+ * Blok ungu; mobile semua bertumpuk; desktop (1100px+) kiri heading + tab + copy, kanan form.
+ *
+ * Provider form dipilih lewat PUBLIC_FORM_PROVIDER (lihat src/lib/config.ts):
+ *  - formspree: form HTML biasa yang POST ke PUBLIC_FORMSPREE_ENDPOINT.
+ *  - tally:     embed iframe Tally, satu form per jalur.
+ * Field tersembunyi: `role` (fans/creator) dan `utm_source`.
+ *
+ * Catatan:
+ *  - Chip peran berupa checkbox bergaya chip (artboard: tombol aria-pressed), supaya nilainya
+ *    ikut terkirim walau JavaScript mati.
+ *  - Input "Sebutkan peranmu" muncul lewat CSS (:has) saat chip "Lainnya" dicentang, tanpa JS.
+ *
+ * Script di bawah:
+ *  - Tab: klik, atau panah kiri/kanan + Home/End saat fokus di tab.
+ *  - Elemen dengan data-pick-tab="fans|creator" di mana pun (CTA hero, section fans/creator,
+ *    pesan tim) memilih tab yang sesuai sebelum halaman scroll ke form.
+ *  - utm_source dari URL diisi ke field tersembunyi (dan ke src iframe Tally).
+ *  - Kontak fans harus email atau nomor WhatsApp yang masuk akal.
+ *  - Kirim via fetch tanpa pindah halaman; sukses: form diganti pesan terima kasih dan
+ *    event analytics form-submit-fans / form-submit-creator; gagal: pesan error, isian tetap.
+ *  - Tanpa JavaScript: form tetap terkirim lewat POST biasa (Formspree menampilkan halamannya sendiri).
+ *  - Mode demo (endpoint belum diisi): alur kirim ditiru, data hanya dicatat di console, dan ada
+ *    baris kecil "Mode demo" di bawah form supaya tidak lupa mengisi endpoint saat rilis.
+ */
+import { formConfig } from '../../lib/config';
+import { ANCHORS, signup, type SignupRole } from '../../data/content';
+
+const roles: SignupRole[] = ['fans', 'creator'];
+// Form HTML dipakai untuk Formspree dan mode demo; Tally memakai iframe.
+const useHtmlForm = formConfig.provider !== 'tally';
+const isDemo = formConfig.provider === 'demo';
+
+const { fans, creator } = signup;
+---
+
+<section id={ANCHORS.signup} aria-labelledby="signup-heading" class="section-y">
+  <div class="container-page max-md:px-4">
+
+    <div class="signup-wrap" data-signup>
+      <!-- Heading + tab. z-10 supaya tetap bisa diklik di atas panel (desktop: panel menumpuk di baris yang sama). -->
+      <div class="relative z-10 flex flex-col gap-4 wide:col-span-6 wide:col-start-1 wide:row-start-1 wide:gap-6">
+        <h2 id="signup-heading" class="signup-h2">{signup.heading}</h2>
+        <div role="tablist" aria-label={signup.tablistLabel} class="flex gap-2 wide:gap-2.5">
+          {
+            roles.map((role) => (
+              <button
+                type="button"
+                role="tab"
+                id={`signup-tab-${role}`}
+                aria-controls={`signup-panel-${role}`}
+                aria-selected={role === signup.defaultTab ? 'true' : 'false'}
+                tabindex={role === signup.defaultTab ? 0 : -1}
+                data-signup-tab={role}
+                class="signup-tab"
+              >
+                {signup[role].tab}
+              </button>
+            ))
+          }
+        </div>
+      </div>
+
+      <!--
+        Satu panel per jalur. Desktop memakai subgrid: copy di kolom kiri baris 2,
+        form di kolom kanan baris 1-2 (sejajar dengan heading).
+      -->
+      {
+        roles.map((role) => (
+          <div
+            role="tabpanel"
+            id={`signup-panel-${role}`}
+            aria-labelledby={`signup-tab-${role}`}
+            data-signup-panel={role}
+            hidden={role !== signup.defaultTab}
+            class="signup-panel"
+          >
+            <!-- Copy -->
+            <div class:list={['signup-copy wide:col-span-6 wide:col-start-1 wide:row-start-2', role === 'creator' && 'signup-copy--creator']}>
+              <p class="signup-intro">{signup[role].intro}</p>
+              {role === 'creator' && (
+                <div class="flex flex-col gap-3">
+                  <span class="signup-gets-title">{creator.getsTitle}</span>
+                  <ul class="signup-gets">
+                    {creator.gets.map((item) => (
+                      <li>{item}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <p>
+                <strong class="font-extrabold">{signup.honestNote.strong}</strong> {signup.honestNote.text}
+              </p>
+            </div>
+
+            <!-- Form -->
+            <div class="wide:col-span-6 wide:col-start-7 wide:row-span-2 wide:row-start-1">
+              {useHtmlForm ? (
+                <form data-signup-form={role} action={isDemo ? undefined : formConfig.formspreeEndpoint} method="POST" aria-label={signup[role].formLabel} class="signup-form">
+                  <input type="hidden" name="role" value={role} />
+                  <input type="hidden" name="utm_source" value="" data-utm-source />
+                  {/* Honeypot anti-spam Formspree: manusia tidak melihat field ini */}
+                  <input type="text" name="_gotcha" tabindex="-1" autocomplete="off" class="hidden" aria-hidden="true" />
+
+                  {role === 'fans' ? (
+                    <>
+                      <label class="kn-field">
+                        <span class="kn-field__label">{fans.fields.name}</span>
+                        <input class="kn-input" type="text" name="nama" autocomplete="nickname" placeholder={fans.placeholders.name} required />
+                      </label>
+                      <label class="kn-field">
+                        <span class="kn-field__label">{fans.fields.contact}</span>
+                        <input class="kn-input" type="text" name="kontak" autocomplete="email" placeholder={fans.placeholders.contact} required />
+                      </label>
+                      <label class="kn-field span-2">
+                        <span class="kn-field__label">{fans.fields.fandom}</span>
+                        <input class="kn-input" type="text" name="fandom" placeholder={fans.placeholders.fandom} />
+                      </label>
+                      <label class="kn-field span-2">
+                        <span class="kn-field__label">{fans.fields.watching}</span>
+                        <input class="kn-input" type="text" name="nonton_musim_ini" placeholder={fans.placeholders.watching} />
+                      </label>
+                      <button class="kn-btn kn-btn--tertiary kn-btn--lg kn-btn--block span-2 mt-1 wide:mt-1.5" type="submit">
+                        {fans.submit}
+                      </button>
+                      <p class="signup-consent span-2">
+                        {signup.consent.before} <a href={signup.consent.terms.href}>{signup.consent.terms.label}</a> {signup.consent.between}{' '}
+                        <a href={signup.consent.privacy.href}>{signup.consent.privacy.label}</a> {signup.consent.after}
+                      </p>
+                      {isDemo && <p class="signup-demo span-2">{signup.status.demo}</p>}
+                    </>
+                  ) : (
+                    <>
+                      <label class="kn-field">
+                        <span class="kn-field__label">{creator.fields.name}</span>
+                        <input class="kn-input" type="text" name="nama" autocomplete="nickname" placeholder={creator.placeholders.name} required />
+                      </label>
+                      <label class="kn-field">
+                        <span class="kn-field__label">{creator.fields.email}</span>
+                        <input class="kn-input" type="email" name="email" autocomplete="email" placeholder={creator.placeholders.email} required />
+                      </label>
+                      <label class="kn-field span-2">
+                        <span class="kn-field__label">{creator.fields.handle}</span>
+                        <input class="kn-input" type="text" name="handle" placeholder={creator.fields.handlePlaceholder} />
+                      </label>
+                      <label class="kn-field span-2">
+                        <span class="kn-field__label">{creator.fields.portfolio}</span>
+                        <input class="kn-input" type="url" name="link_karya" placeholder={creator.fields.portfolioPlaceholder} />
+                      </label>
+                      <fieldset class="role-field span-2">
+                        <legend class="kn-field__label">{creator.fields.roles}</legend>
+                        <div class="role-chips">
+                          {creator.roles.map((label) => (
+                            <label class="role-option">
+                              <input type="checkbox" name="peran" value={label} class="sr-only" data-role-other-toggle={label === creator.roleOther ? '' : undefined} />
+                              <span class="role-chip">
+                                <svg class="ck" viewBox="0 0 16 16" aria-hidden="true">
+                                  <path d="M3 8.5l3.2 3.2L13 4.8" />
+                                </svg>
+                                {label}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                        <input
+                          class="kn-input role-other"
+                          type="text"
+                          name="peran_lainnya"
+                          placeholder={creator.fields.roleOtherPlaceholder}
+                          aria-label={creator.fields.roleOtherPlaceholder}
+                        />
+                      </fieldset>
+                      <label class="kn-field">
+                        <span class="kn-field__label">{creator.fields.fandom}</span>
+                        <input class="kn-input" type="text" name="fandom" placeholder={creator.placeholders.fandom} />
+                      </label>
+                      <label class="sfw span-2">
+                        <input type="checkbox" name="sfw" value="ya" required />
+                        {creator.fields.sfw}
+                      </label>
+                      <button class="kn-btn kn-btn--tertiary kn-btn--lg kn-btn--block span-2" type="submit">
+                        {creator.submit}
+                      </button>
+                      <p class="signup-consent span-2">
+                        {signup.consent.before} <a href={signup.consent.terms.href}>{signup.consent.terms.label}</a> {signup.consent.between}{' '}
+                        <a href={signup.consent.privacy.href}>{signup.consent.privacy.label}</a> {signup.consent.after}
+                      </p>
+                      {isDemo && <p class="signup-demo span-2">{signup.status.demo}</p>}
+                      <p class="span-2 m-0 text-body text-on-primary">{creator.note}</p>
+                    </>
+                  )}
+                </form>
+              ) : (
+                // src iframe diisi script supaya membawa role dan utm_source (hidden fields Tally).
+                <iframe
+                  data-tally-iframe
+                  data-tally-form-id={formConfig.tallyFormIds[role]}
+                  title={signup[role].formLabel}
+                  loading="lazy"
+                  width="100%"
+                  height="560"
+                  class="w-full border-0"
+                />
+              )}
+
+              <!-- Pesan gagal kirim -->
+              <p data-signup-error role="alert" hidden class="signup-error"></p>
+
+              <!-- Pesan sukses. role="status" supaya dibacakan screen reader saat muncul. -->
+              <div data-signup-success role="status" tabindex="-1" hidden class="signup-thanks">
+                <p>{formConfig.successMessage}</p>
+              </div>
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</section>
+
+<style>
+  /* Blok ungu */
+  .signup-wrap {
+    box-sizing: border-box;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 28px 18px;
+    border-radius: 32px;
+    background: var(--primary);
+    color: var(--on-primary);
+    overflow: hidden;
+  }
+  .signup-h2 {
+    margin: 0;
+    font: 700 26px/32px var(--font-display);
+    letter-spacing: -0.02em;
+  }
+
+  /* Tab putih outline (artboard), bukan kn-chip. Mobile: dua tab sama lebar. */
+  .signup-tab {
+    flex: 1;
+    height: var(--control-md);
+    padding: 0 12px;
+    border-radius: var(--radius-pill);
+    border: 1.5px solid rgb(249 249 249 / 0.55);
+    background: transparent;
+    color: var(--paper);
+    font: 700 16px/20px var(--font-sans);
+    cursor: pointer;
+  }
+  .signup-tab:hover {
+    background: rgb(249 249 249 / 0.12);
+  }
+  .signup-tab[aria-selected='true'] {
+    background: var(--paper);
+    border-color: var(--paper);
+    color: #16121f;
+  }
+
+  .signup-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  /* Atribut hidden harus menang atas display di atas */
+  .signup-panel[hidden] {
+    display: none;
+  }
+
+  /* Copy */
+  .signup-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .signup-copy p {
+    margin: 0;
+    font: 400 16px/25px var(--font-sans);
+  }
+  .signup-gets-title {
+    font: 700 16px/22px var(--font-sans);
+  }
+  /* Mobile: daftar dengan titik pink */
+  .signup-gets {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+  .signup-gets li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font: 600 16px/24px var(--font-sans);
+  }
+  .signup-gets li::before {
+    content: '';
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    margin-top: 8px;
+    border-radius: 50%;
+    background: var(--tertiary);
+  }
+
+  /* Form */
+  .signup-form[hidden] {
+    display: none !important;
+  }
+  .signup-form {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .signup-form .kn-field {
+    gap: 6px;
+  }
+  .signup-form .kn-field__label {
+    color: var(--on-primary);
+    font-size: 16px;
+  }
+  /* Input putih di atas blok ungu */
+  .signup-form .kn-input {
+    background: var(--paper);
+    color: #16121f;
+    border-color: transparent;
+    border-radius: 18px;
+  }
+
+  /* Chip peran */
+  .role-field {
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .role-field > legend {
+    float: left;
+    width: 100%;
+    margin: 0 0 10px;
+    padding: 0;
+  }
+  .role-chips {
+    clear: both;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 6px;
+  }
+  .role-option {
+    cursor: pointer;
+  }
+  .role-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0;
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: var(--radius-pill);
+    border: 1.5px solid rgb(249 249 249 / 0.4);
+    background: rgb(249 249 249 / 0.14);
+    color: var(--paper);
+    font: 800 13px/16px var(--font-sans);
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    transition:
+      background-color 0.2s ease,
+      border-color 0.2s ease,
+      color 0.2s ease,
+      gap 0.2s ease;
+  }
+  .role-chip:hover {
+    background: rgb(249 249 249 / 0.24);
+  }
+  :checked + .role-chip {
+    gap: 6px;
+    background: var(--tertiary);
+    border-color: var(--tertiary);
+    color: var(--on-tertiary);
+  }
+  :focus-visible + .role-chip {
+    outline: 2px solid var(--paper);
+    outline-offset: 3px;
+  }
+  /* Centang muncul saat chip dipilih */
+  .ck {
+    width: 0;
+    height: 14px;
+    flex-shrink: 0;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.4;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    opacity: 0;
+    transition:
+      width 0.2s ease,
+      opacity 0.2s ease;
+  }
+  :checked + .role-chip .ck {
+    width: 14px;
+    opacity: 1;
+  }
+  /* "Sebutkan peranmu": hanya tampil saat chip "Lainnya" dicentang */
+  .role-other {
+    display: none;
+    margin-top: 2px;
+  }
+  .role-field:has([data-role-other-toggle]:checked) .role-other {
+    display: block;
+  }
+
+  .sfw {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: var(--control-md);
+    font: 700 16px/24px var(--font-sans);
+  }
+  .sfw input {
+    width: 22px;
+    height: 22px;
+    margin: 0;
+    accent-color: var(--tertiary);
+  }
+
+  /* Pesan sukses */
+  .signup-thanks {
+    box-sizing: border-box;
+    padding: 22px 20px;
+    border-radius: 28px 28px 28px 8px;
+    background: var(--tertiary);
+    color: var(--on-tertiary);
+    box-shadow: 5px 5px 0 #16121f;
+  }
+  .signup-thanks p {
+    margin: 0;
+    font: 700 19px/28px var(--font-display);
+    letter-spacing: -0.01em;
+  }
+  .signup-thanks[hidden] {
+    display: none;
+  }
+  .signup-thanks:focus {
+    outline: none;
+  }
+  /* Baris persetujuan kecil di bawah tombol daftar */
+  .signup-consent {
+    margin: 0;
+    font: 400 13px/19px var(--font-sans);
+    color: rgb(249 249 249 / 0.8);
+  }
+  .signup-consent a {
+    color: var(--paper);
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+  .signup-consent a:hover {
+    color: var(--tertiary);
+  }
+  /* Penanda mode demo (belum ada backend form) */
+  .signup-demo {
+    margin: 0;
+    font: 600 12px/16px var(--font-sans);
+    /* Bukan --tertiary (pink): di atas ungu kontrasnya hanya 4.2:1 */
+    color: var(--on-primary);
+  }
+  .signup-error {
+    margin: 12px 0 0;
+    padding: 12px 16px;
+    border-radius: 16px;
+    background: rgb(15 11 26 / 0.35);
+    font: 600 15px/22px var(--font-sans);
+    color: var(--paper);
+  }
+  .signup-error[hidden] {
+    display: none;
+  }
+  .signup-form [type='submit'][disabled] {
+    cursor: progress;
+  }
+
+  @media (min-width: 768px) {
+    .signup-wrap {
+      padding: 48px;
+      border-radius: 44px;
+      gap: 24px;
+    }
+    .signup-h2 {
+      font-size: 40px;
+      line-height: 46px;
+    }
+    .signup-tab {
+      flex: none;
+      padding: 0 22px;
+    }
+  }
+
+  @media (min-width: 1100px) {
+    .signup-wrap {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      /* Baris 1 setinggi heading + tab; sisa tinggi form masuk ke baris 2 (copy) */
+      grid-template-rows: auto 1fr;
+      column-gap: 48px;
+      row-gap: 24px;
+      align-items: start;
+      padding: 64px;
+    }
+    .signup-h2 {
+      font-size: 48px;
+      line-height: 54px;
+    }
+    .signup-panel {
+      grid-column: 1 / -1;
+      grid-row: 1 / span 2;
+      display: grid;
+      grid-template-columns: subgrid;
+      grid-template-rows: subgrid;
+    }
+    .signup-copy {
+      gap: 18px;
+    }
+    .signup-copy--creator {
+      gap: 24px;
+    }
+    .signup-copy p {
+      font-size: 17px;
+      line-height: 26px;
+    }
+    .signup-copy .signup-intro {
+      font-size: 18px;
+      line-height: 28px;
+    }
+    .signup-gets-title {
+      font-size: 18px;
+      line-height: 24px;
+    }
+    /* Desktop: manfaat sebagai bubble transparan */
+    .signup-gets {
+      gap: 10px;
+    }
+    .signup-gets li {
+      align-self: flex-start;
+      padding: 12px 18px;
+      border-radius: 22px 22px 22px 6px;
+      background: rgb(249 249 249 / 0.14);
+      font-size: 17px;
+    }
+    .signup-gets li::before {
+      display: none;
+    }
+    .signup-form {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px 16px;
+    }
+    .span-2 {
+      grid-column: span 2;
+    }
+    .signup-form .kn-field {
+      gap: var(--space-2);
+    }
+    .signup-form .kn-input {
+      border-radius: 20px;
+    }
+    .role-chips {
+      gap: 10px;
+    }
+    .role-chip {
+      padding: 0 16px;
+      letter-spacing: 0.06em;
+    }
+    .role-other {
+      max-width: 360px;
+    }
+    .sfw {
+      font-size: 17px;
+    }
+    .signup-thanks {
+      padding: 26px 28px 24px;
+      border-radius: 32px 32px 32px 8px;
+      box-shadow: 6px 6px 0 #16121f;
+    }
+    .signup-thanks p {
+      font-size: 24px;
+      line-height: 34px;
+    }
+  }
+</style>
+
+<script>
+  import { EVENTS, track } from '../../lib/analytics';
+  import { formConfig } from '../../lib/config';
+  import { signup, type SignupRole } from '../../data/content';
+
+  const root = document.querySelector<HTMLElement>('[data-signup]');
+  if (root) setupSignup(root);
+
+  function setupSignup(root: HTMLElement) {
+    const tabs = [...root.querySelectorAll<HTMLButtonElement>('[data-signup-tab]')];
+    const panels = [...root.querySelectorAll<HTMLElement>('[data-signup-panel]')];
+    const utmSource = new URLSearchParams(location.search).get('utm_source') ?? '';
+
+    // ---- Tab ------------------------------------------------------------------
+
+    function selectTab(role: string, { focus = false } = {}) {
+      for (const tab of tabs) {
+        const selected = tab.dataset.signupTab === role;
+        tab.setAttribute('aria-selected', String(selected));
+        tab.tabIndex = selected ? 0 : -1;
+        if (selected && focus) tab.focus();
+      }
+      for (const panel of panels) panel.hidden = panel.dataset.signupPanel !== role;
+    }
+
+    for (const tab of tabs) tab.addEventListener('click', () => selectTab(tab.dataset.signupTab!));
+
+    root.querySelector('[role="tablist"]')?.addEventListener('keydown', (event) => {
+      const key = (event as KeyboardEvent).key;
+      const current = tabs.findIndex((tab) => tab.getAttribute('aria-selected') === 'true');
+      const next =
+        key === 'ArrowRight'
+          ? (current + 1) % tabs.length
+          : key === 'ArrowLeft'
+            ? (current - 1 + tabs.length) % tabs.length
+            : key === 'Home'
+              ? 0
+              : key === 'End'
+                ? tabs.length - 1
+                : -1;
+      if (next === -1) return;
+      event.preventDefault();
+      selectTab(tabs[next].dataset.signupTab!, { focus: true });
+    });
+
+    // CTA di bagian lain halaman memilih tab dulu; scroll ke #founding tetap ditangani link-nya.
+    document.addEventListener('click', (event) => {
+      const picker = (event.target as Element | null)?.closest?.<HTMLElement>('[data-pick-tab]');
+      if (picker?.dataset.pickTab) selectTab(picker.dataset.pickTab);
+    });
+
+    // ---- utm_source -------------------------------------------------------------
+
+    root.querySelectorAll<HTMLInputElement>('[data-utm-source]').forEach((input) => (input.value = utmSource));
+
+    // ---- Hasil kirim ---------------------------------------------------------------
+
+    function showSuccess(panel: HTMLElement, role: SignupRole, { trackEvent = true } = {}) {
+      panel.querySelector<HTMLElement>('form, iframe')?.setAttribute('hidden', '');
+      const error = panel.querySelector<HTMLElement>('[data-signup-error]');
+      if (error) error.hidden = true;
+      const success = panel.querySelector<HTMLElement>('[data-signup-success]');
+      if (success) {
+        success.hidden = false;
+        success.focus({ preventScroll: true });
+      }
+      if (trackEvent) track(role === 'fans' ? EVENTS.formSubmitFans : EVENTS.formSubmitCreator, utmSource ? { utm_source: utmSource } : undefined);
+    }
+
+    function showError(panel: HTMLElement, message: string) {
+      const error = panel.querySelector<HTMLElement>('[data-signup-error]');
+      if (!error) return;
+      error.textContent = message;
+      error.hidden = false;
+    }
+
+    // ---- Formspree ---------------------------------------------------------------
+
+    const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    // 08xx / +628xx / 628xx: 9-15 digit setelah spasi dan tanda hubung dibuang
+    const WHATSAPP = /^(\+?62|0)8\d{7,12}$/;
+
+    function validateContact(input: HTMLInputElement) {
+      const value = input.value.trim();
+      const valid = EMAIL.test(value) || WHATSAPP.test(value.replace(/[\s-]/g, ''));
+      input.setCustomValidity(valid ? '' : signup.status.contactInvalid);
+    }
+
+    root.querySelectorAll<HTMLFormElement>('form[data-signup-form]').forEach((form) => {
+      const role = form.dataset.signupForm as SignupRole;
+      const panel = form.closest<HTMLElement>('[data-signup-panel]')!;
+      const submit = form.querySelector<HTMLButtonElement>('[type="submit"]')!;
+      const contact = form.querySelector<HTMLInputElement>('input[name="kontak"]');
+
+      contact?.addEventListener('input', () => contact.setCustomValidity(''));
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        if (contact) validateContact(contact);
+        if (!form.reportValidity()) return;
+
+        // Mode demo: belum ada backend. Tiru alur kirim, data hanya dicatat di console.
+        if (formConfig.provider === 'demo') {
+          const label = submit.textContent;
+          submit.disabled = true;
+          submit.textContent = signup.status.sending;
+          console.info('[Konnetto] Mode demo, data form tidak dikirim:', Object.fromEntries(new FormData(form)));
+          await new Promise((resolve) => setTimeout(resolve, 700));
+          submit.disabled = false;
+          submit.textContent = label;
+          showSuccess(panel, role, { trackEvent: false });
+          return;
+        }
+
+        const label = submit.textContent;
+        submit.disabled = true;
+        submit.textContent = signup.status.sending;
+        try {
+          const response = await fetch(form.action, {
+            method: 'POST',
+            body: new FormData(form),
+            headers: { Accept: 'application/json' },
+          });
+          if (!response.ok) throw new Error(`Formspree ${response.status}`);
+          showSuccess(panel, role);
+        } catch (error) {
+          console.error('Gagal mengirim form', error);
+          showError(panel, signup.status.error);
+        } finally {
+          submit.disabled = false;
+          submit.textContent = label;
+        }
+      });
+    });
+
+    // ---- Tally ----------------------------------------------------------------------
+
+    const tallyFrames = [...root.querySelectorAll<HTMLIFrameElement>('iframe[data-tally-iframe]')];
+    for (const frame of tallyFrames) {
+      const formId = frame.dataset.tallyFormId;
+      const role = frame.closest<HTMLElement>('[data-signup-panel]')?.dataset.signupPanel ?? '';
+      if (!formId) continue;
+      const params = new URLSearchParams({ alignLeft: '1', hideTitle: '1', transparentBackground: '1', role, utm_source: utmSource });
+      frame.src = `https://tally.so/embed/${formId}?${params}`;
+    }
+
+    if (tallyFrames.length) {
+      // Tally mengirim postMessage berisi JSON saat form selesai diisi.
+      window.addEventListener('message', (event) => {
+        if (typeof event.data !== 'string' || !event.data.includes('Tally.FormSubmitted')) return;
+        try {
+          const data = JSON.parse(event.data) as { event?: string; payload?: { formId?: string } };
+          if (data.event !== 'Tally.FormSubmitted') return;
+          const frame = tallyFrames.find((f) => f.dataset.tallyFormId === data.payload?.formId);
+          const panel = frame?.closest<HTMLElement>('[data-signup-panel]');
+          if (frame && panel) showSuccess(panel, panel.dataset.signupPanel as SignupRole);
+        } catch {
+          // Pesan dari sumber lain; abaikan.
+        }
+      });
+    }
+  }
+</script>

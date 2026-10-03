@@ -1,0 +1,202 @@
+---
+/**
+ * ReactionPopover: siapa saja yang memberi reaksi tertentu.
+ * Dipasang SEKALI per halaman (di pages/index.astro). Isi, posisi, dan buka/tutupnya
+ * diatur oleh src/lib/reaction-popover.ts (dipanggil dari script Reactions).
+ *
+ * Bentuk (artboard Versi B):
+ *  - Desktop: popup kecil 290px di dekat tombol reaksi. Kiri: sticker besar + nama reaksi
+ *    (monospace). Kanan: daftar user + badge, lalu "+N".
+ *  - Layar sentuh: bottom sheet dengan scrim, bisa ditarik ke bawah untuk menutup.
+ *
+ * Style memakai is:global karena daftar user dibuat oleh JavaScript.
+ */
+---
+
+<div id="reaction-popover" data-reaction-popover popover="manual" role="dialog" aria-label="Yang bereaksi" class="rx">
+  <button type="button" class="rx-scrim" data-rx-scrim tabindex="-1" aria-label="Tutup daftar reaksi"></button>
+  <div class="rx-panel" data-rx-panel>
+    <span class="rx-grab" aria-hidden="true"></span>
+    <div class="rx-body">
+      <div class="rx-prev">
+        <img class="rx-sticker" data-rx-sticker alt="" width="68" height="68" />
+        <span class="rx-name" data-rx-name></span>
+      </div>
+      <ul class="rx-list" data-rx-list></ul>
+    </div>
+  </div>
+</div>
+
+<style is:global>
+  /* Popup desktop (default). Nilai warna transparan dari artboard. */
+  .rx {
+    position: fixed;
+    inset: auto;
+    width: 290px;
+    max-width: calc(100vw - 32px);
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    overflow: visible;
+  }
+  .rx-scrim,
+  .rx-grab {
+    display: none;
+  }
+  .rx-panel {
+    box-sizing: border-box;
+    padding: 9px;
+    border-radius: 7px;
+    background: rgb(20 16 30 / 0.88);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgb(255 255 255 / 0.08);
+    box-shadow: 0 4px 14px rgb(0 0 0 / 0.22);
+    animation: rx-in 0.12s ease-out backwards;
+  }
+  @keyframes rx-in {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+  }
+
+  .rx-body {
+    display: flex;
+  }
+  .rx-prev {
+    flex-shrink: 0;
+    width: 78px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 9px 2px 0;
+    box-sizing: border-box;
+  }
+  .rx-sticker {
+    display: block;
+    width: 68px;
+    height: 68px;
+    object-fit: contain;
+  }
+  .rx-name {
+    max-width: 78px;
+    text-align: center;
+    overflow-wrap: anywhere;
+    font: 400 11px/14px ui-monospace, 'SFMono-Regular', Menlo, Consolas, monospace;
+    color: rgb(255 255 255 / 0.5);
+  }
+  .rx-list {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    margin: 0;
+    padding: 0 0 0 9px;
+    list-style: none;
+    border-left: 1px solid rgb(255 255 255 / 0.08);
+  }
+  .rx-user {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    height: 27px;
+  }
+  .rx-av {
+    flex-shrink: 0;
+    display: block;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: 50% 35%;
+    background: var(--primary-soft);
+  }
+  .rx-un {
+    min-width: 0;
+    flex: 0 1 auto;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font: 500 13px/18px var(--font-sans);
+    color: rgb(255 255 255 / 0.85);
+  }
+  .rx-badge {
+    flex-shrink: 0;
+    padding: 0 6px;
+    border-radius: var(--radius-pill);
+    box-shadow: inset 0 0 0 1px currentColor;
+    font: 600 10px/15px var(--font-sans);
+    letter-spacing: 0.01em;
+  }
+  .rx-badge--creator {
+    color: var(--accent-pink);
+  }
+  .rx-badge--cosplayer,
+  .rx-badge--vtuber {
+    color: var(--secondary);
+  }
+  .rx-badge--official {
+    color: var(--accent);
+  }
+  .rx-more {
+    padding: 5px 0 0;
+    font: 500 12px/16px var(--font-sans);
+    color: rgb(255 255 255 / 0.5);
+  }
+
+  /* Bottom sheet (layar sentuh): menutupi layar, panel di bawah */
+  .rx.is-sheet {
+    inset: 0;
+    width: 100%;
+    max-width: none;
+    height: 100%;
+    max-height: none;
+  }
+  .rx.is-sheet .rx-scrim {
+    display: block;
+    position: absolute;
+    inset: 0;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: rgb(6 3 14 / 0.4);
+    cursor: pointer;
+  }
+  .rx.is-sheet .rx-panel {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px 14px max(20px, env(safe-area-inset-bottom));
+    border-radius: 12px 12px 0 0;
+    border-bottom: 0;
+    background: rgb(20 16 30 / 0.92);
+    box-shadow: 0 -4px 14px rgb(0 0 0 / 0.22);
+    touch-action: none;
+    transition: transform 0.18s ease-out;
+    animation: rx-sheet-in 0.16s ease-out backwards;
+  }
+  .rx.is-sheet .rx-panel.is-drag {
+    transition: none;
+  }
+  @keyframes rx-sheet-in {
+    from {
+      opacity: 0;
+      transform: translateY(24px);
+    }
+  }
+  .rx.is-sheet .rx-grab {
+    display: block;
+    align-self: center;
+    width: 32px;
+    height: 3px;
+    border-radius: 3px;
+    background: rgb(255 255 255 / 0.2);
+  }
+</style>

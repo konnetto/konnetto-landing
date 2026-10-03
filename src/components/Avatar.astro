@@ -1,0 +1,89 @@
+---
+/**
+ * Avatar bulat + avatar decoration opsional (src/data/decorations.ts).
+ *
+ * Class yang diberikan (`class`) dipasang di wrapper, jadi ukuran, margin, dan latar diatur
+ * oleh komponen pemakai seperti biasa (misalnya `.chat-av { --s: 32px }` atau width/height).
+ * Gambar avatar mengisi wrapper; object-position diwarisi dari class pemakai.
+ *
+ * Dekorasi:
+ *  - Lapisan di atas avatar, DECORATION_SCALE x ukuran avatar, di tengah. Position absolute,
+ *    jadi tidak memengaruhi layout. pointer-events: none dan alt="" (dekoratif).
+ *  - Disembunyikan otomatis kalau avatar lebih kecil dari 28px (terlalu ramai), lewat
+ *    container query pada wrapper.
+ *  - Elemennya selalu dirender (hidden kalau user tanpa dekorasi) supaya script yang mengisi
+ *    template (ChatFeed, MadingPanel) bisa memasang dekorasi lewat setAvatarDecoration().
+ */
+import type { User } from '../data/users';
+import { DECORATION_FILE_SIZE, getDecoration } from '../data/decorations';
+
+interface Props {
+  /** Kosong untuk cetakan <template> yang diisi script. */
+  user?: User;
+  class?: string;
+  /** Ukuran intrinsik gambar avatar (atribut width/height). */
+  size: number;
+  /** Default: user.avatarAlt. Isi "" kalau nama user sudah tertulis di sebelahnya. */
+  alt?: string;
+  /** Avatar di hero tampil langsung; lainnya lazy. */
+  loading?: 'lazy' | 'eager';
+}
+
+// rest berisi atribut scope (data-astro-cid-*) dari komponen pemakai, supaya style scoped-nya
+// (misalnya .chat-av) berlaku di wrapper.
+const { user, class: className, size, alt = user?.avatarAlt ?? '', loading = 'lazy', ...rest } = Astro.props;
+const decoration = user?.decoration ? getDecoration(user.decoration) : undefined;
+---
+
+<span class:list={['av', className]} {...rest}>
+  <img class="av-img" data-slot="avatar" src={user?.avatarUrl} alt={alt} width={size} height={size} loading={loading} decoding="async" />
+  <img
+    class="av-deco"
+    data-slot="decoration"
+    src={decoration?.url}
+    alt=""
+    width={DECORATION_FILE_SIZE}
+    height={DECORATION_FILE_SIZE}
+    loading="lazy"
+    decoding="async"
+    hidden={!decoration}
+  />
+</span>
+
+<style is:global>
+  /* Global: reaction-popover.ts membuat avatar yang sama lewat JavaScript. */
+  .av {
+    position: relative;
+    display: inline-block;
+    flex-shrink: 0;
+    border-radius: 50%;
+    container-type: size;
+  }
+  .av-img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border-radius: inherit;
+    object-fit: cover;
+    object-position: inherit;
+  }
+  .av-deco {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 150%;
+    height: 150%;
+    max-width: none;
+    translate: -50% -50%;
+    pointer-events: none;
+  }
+  .av-deco[hidden] {
+    display: none;
+  }
+  /* Di bawah 28px dekorasi terlalu ramai */
+  @container (max-width: 27.98px) {
+    .av-deco {
+      display: none;
+    }
+  }
+</style>

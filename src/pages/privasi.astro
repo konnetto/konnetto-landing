@@ -1,0 +1,159 @@
+---
+/**
+ * Kebijakan Privasi pendaftaran (daftar tunggu fans + pengajuan Founding Creator).
+ * Masih draf: sebaiknya ditinjau orang yang paham hukum (UU PDP No. 27/2022) sebelum rilis.
+ *
+ * Beberapa bagian menyesuaikan konfigurasi supaya selalu akurat:
+ *  - nama layanan formulir (Formspree / Tally) dari PUBLIC_FORM_PROVIDER
+ *  - bagian statistik Umami hanya tampil kalau PUBLIC_UMAMI_WEBSITE_ID diisi
+ *
+ * TODO(privasi): ganti "Konnetto" di bagian 1 dengan nama badan usaha kalau sudah ada,
+ *                dan konfirmasi masa simpan data (bagian 6).
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/sections/Footer.astro';
+import { contact, nav } from '../data/content';
+import { analyticsConfig, formConfig } from '../lib/config';
+
+const lastUpdated = '3 Oktober 2026'; // TODO(privasi): perbarui setiap kali isi berubah
+
+// Link navbar menunjuk ke section di halaman utama.
+const links = nav.links.map((link) => ({ ...link, href: `/${link.href}` }));
+const cta = { ...nav.cta, href: `/${nav.cta.href}` };
+
+const email = contact.email;
+const formService =
+  formConfig.provider === 'formspree' ? 'Formspree' : formConfig.provider === 'tally' ? 'Tally' : 'layanan formulir pihak ketiga';
+const usesUmami = !!analyticsConfig.umamiWebsiteId;
+
+/** Isi per bagian. `note` = paragraf setelah daftar poin. */
+const sections: { title: string; points: string[]; note?: string }[] = [
+  {
+    title: 'Tentang kebijakan ini',
+    points: [
+      'Kebijakan ini menjelaskan data apa yang kami kumpulkan saat kamu mendaftar di konnetto.id, untuk apa data itu dipakai, dan apa saja hakmu. Situs ini dikelola oleh Konnetto ("kami").',
+      'Konnetto masih dalam tahap pengembangan (pre-release). Kebijakan ini berlaku untuk pendaftaran daftar tunggu (fans) dan pengajuan Founding Creator. Saat aplikasi dirilis, akan ada kebijakan privasi tersendiri untuk aplikasinya.',
+      'Dengan mengirim formulir, kamu menyetujui pengumpulan dan pemrosesan data sesuai kebijakan ini dan Syarat dan Ketentuan kami.',
+    ],
+  },
+  {
+    title: 'Data yang kami kumpulkan',
+    points: [
+      'Pendaftaran fans: nama, email atau nomor WhatsApp, fandom atau oshi, dan anime yang sedang kamu tonton (kalau diisi).',
+      'Pengajuan Founding Creator: nama, email, handle media sosial (Instagram, X, atau TikTok), tautan karya, peran yang kamu pilih, fandom atau oshi, dan pernyataan bahwa karyamu aman untuk semua umur (SFW).',
+      'Informasi tambahan dari formulir: jalur yang kamu pilih (fans atau creator) dan sumber kunjungan (utm_source) kalau kamu datang lewat tautan kampanye.',
+      ...(usesUmami
+        ? [
+            'Statistik kunjungan yang tidak mengenali kamu secara pribadi: halaman yang dibuka, jenis perangkat dan browser, negara, serta situs yang mengarahkanmu ke sini. Kami memakai Umami, yang tidak memakai cookie dan tidak menyimpan data pribadi.',
+          ]
+        : []),
+      'Data teknis yang diproses penyedia hosting kami (Cloudflare) untuk menyajikan halaman dan menjaga keamanan, misalnya alamat IP dan jenis browser.',
+      `Isi email yang kamu kirim ke ${email}.`,
+    ],
+  },
+  {
+    title: 'Untuk apa data dipakai',
+    points: [
+      'Mengabari kamu saat beta dibuka dan mengirim undangan beta.',
+      'Meninjau pengajuan Founding Creator dan menghubungi creator yang terpilih.',
+      'Memahami siapa saja yang tertarik dengan Konnetto (misalnya fandom yang paling banyak disebut), dalam bentuk ringkasan yang tidak menunjuk orang tertentu.',
+      'Menjaga keamanan situs dan mencegah pendaftaran palsu atau spam.',
+    ],
+    note: 'Kami tidak menjual data pribadimu dan tidak memakainya untuk iklan pihak ketiga.',
+  },
+  {
+    title: 'Dasar pemrosesan',
+    points: [
+      'Kami memproses data pendaftaranmu berdasarkan persetujuan yang kamu berikan saat mengirim formulir.',
+      `Kamu bisa menarik persetujuan kapan saja dengan menghubungi ${email}. Setelah itu kami berhenti memproses dan menghapus datamu, kecuali yang wajib kami simpan menurut hukum.`,
+    ],
+  },
+  {
+    title: 'Layanan pihak ketiga',
+    points: [
+      `Data formulir dikirim dan disimpan melalui ${formService}.`,
+      'Situs ini di-host di Cloudflare, yang juga meneruskan email yang dikirim ke alamat kontak kami.',
+      `Email yang kamu kirim ke ${email} disimpan di layanan email Google (Gmail).`,
+      ...(usesUmami ? ['Statistik kunjungan dicatat dengan Umami.'] : []),
+    ],
+    note: 'Sebagian penyedia ini menyimpan data di server di luar Indonesia. Kami hanya memakai penyedia yang menerapkan perlindungan data yang layak, dan hanya membagikan data yang dibutuhkan untuk layanan mereka.',
+  },
+  {
+    title: 'Berapa lama data disimpan',
+    points: [
+      'Data pendaftaran kami simpan selama masa pre-release dan beta, supaya kami bisa mengabari dan mengundangmu.',
+      'Kalau kamu tidak melanjutkan ke aplikasi Konnetto, datamu kami hapus paling lambat 12 bulan setelah Konnetto dirilis untuk umum.',
+      'Data pengajuan creator yang tidak terpilih kami hapus dengan ketentuan yang sama, kecuali kamu meminta dihapus lebih cepat.',
+    ],
+  },
+  {
+    title: 'Pengguna di bawah umur',
+    points: [
+      'Pendaftaran hanya untuk pengguna berusia minimal 13 tahun.',
+      'Pengguna berusia 13 sampai 17 tahun harus mendapat izin dari orang tua atau wali sebelum mendaftar.',
+      `Kalau kami mengetahui ada data milik anak di bawah 13 tahun, atau pendaftaran di bawah 18 tahun tanpa izin orang tua atau wali, kami akan menghapusnya. Orang tua atau wali juga bisa meminta penghapusan lewat ${email}.`,
+    ],
+  },
+  {
+    title: 'Hak kamu',
+    points: [
+      'Meminta salinan data pribadimu yang kami simpan.',
+      'Memperbaiki data yang salah atau tidak lengkap.',
+      'Meminta datamu dihapus.',
+      'Menarik persetujuan dan berhenti menerima pesan dari kami.',
+    ],
+    note: `Kirim permintaanmu ke ${email}. Untuk melindungi datamu, kami mungkin meminta konfirmasi bahwa permintaan itu benar dari kamu.`,
+  },
+  {
+    title: 'Keamanan data',
+    points: [
+      'Akses ke data pendaftaran hanya untuk tim Konnetto yang membutuhkannya.',
+      'Situs dan formulir memakai koneksi terenkripsi (HTTPS).',
+      'Kalau terjadi kebocoran data yang memengaruhi data pribadimu, kami akan memberitahumu sesuai ketentuan UU Pelindungan Data Pribadi.',
+    ],
+  },
+  {
+    title: 'Perubahan kebijakan',
+    points: [
+      'Kebijakan ini bisa kami perbarui. Tanggal di bagian atas akan selalu menunjukkan versi terbaru, dan untuk perubahan penting kami akan memberi tahu lewat email.',
+    ],
+  },
+];
+---
+
+<BaseLayout title="Kebijakan Privasi | Konnetto" description="Data apa yang dikumpulkan Konnetto saat kamu daftar komunitas awal atau Founding Creator, untuk apa dipakai, berapa lama disimpan, dan apa hakmu.">
+  <Navbar links={links} cta={cta} homeHref="/" />
+
+  <main id="konten" class="container-page max-w-3xl pt-28 pb-20">
+    <h1 class="m-0 font-display text-display-3 md:text-display-2">Kebijakan Privasi</h1>
+    <p class="mt-3 text-body-sm text-ink-muted">Terakhir diperbarui: {lastUpdated}</p>
+
+    <ol class="m-0 mt-6 list-none p-0">
+      {
+        sections.map((section, index) => (
+          <li class="mt-10">
+            <h2 class="m-0 font-display text-title">
+              {index + 1}. {section.title}
+            </h2>
+            <ul class="mt-3 flex flex-col gap-2 pl-5 text-body text-ink-muted">
+              {section.points.map((point) => (
+                <li class="list-disc">{point}</li>
+              ))}
+            </ul>
+            {section.note && <p class="mt-3 text-body text-ink-muted">{section.note}</p>}
+          </li>
+        ))
+      }
+      <li class="mt-10">
+        <h2 class="m-0 font-display text-title">{sections.length + 1}. Kontak</h2>
+        <p class="mt-3 text-body text-ink-muted">
+          Pertanyaan atau permintaan terkait data pribadimu bisa dikirim ke{' '}
+          <a href={`mailto:${email}`} class="font-semibold text-accent underline underline-offset-4 hover:text-ink">{email}</a>.
+        </p>
+      </li>
+    </ol>
+  </main>
+
+  <Footer />
+</BaseLayout>

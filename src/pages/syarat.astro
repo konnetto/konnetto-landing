@@ -1,0 +1,146 @@
+---
+/**
+ * Syarat dan Ketentuan pendaftaran (daftar tunggu fans + pengajuan Founding Creator).
+ * Masih draf: sebaiknya ditinjau orang yang paham hukum sebelum rilis.
+ *
+ * TODO(syarat): ganti "Konnetto" di bagian 1 dengan nama badan usaha kalau sudah ada,
+ *               dan tentukan kota pengadilan di bagian 11 kalau diperlukan.
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/sections/Footer.astro';
+import { contact, nav } from '../data/content';
+
+const lastUpdated = '3 Oktober 2026'; // TODO(syarat): perbarui setiap kali isi berubah
+
+// Link navbar menunjuk ke section di halaman utama.
+const links = nav.links.map((link) => ({ ...link, href: `/${link.href}` }));
+const cta = { ...nav.cta, href: `/${nav.cta.href}` };
+
+const email = contact.email;
+
+/** Isi per bagian. `note` = paragraf setelah daftar poin. */
+const sections: { title: string; points: string[]; note?: string }[] = [
+  {
+    title: 'Tentang dokumen ini',
+    points: [
+      'Syarat ini berlaku untuk pendaftaran daftar tunggu (fans) dan pengajuan Founding Creator di konnetto.id, yang dikelola oleh Konnetto ("kami").',
+      'Dengan mengirim formulir, kamu menyatakan sudah membaca dan menyetujui Syarat ini serta Kebijakan Privasi kami.',
+      'Konnetto masih dalam tahap pengembangan (pre-release). Syarat ini hanya mengatur pendaftaran, bukan penggunaan aplikasi. Saat aplikasi dirilis, akan ada syarat penggunaan tersendiri.',
+    ],
+  },
+  {
+    title: 'Siapa yang boleh mendaftar',
+    points: [
+      'Kamu berusia minimal 13 tahun.',
+      'Jika usiamu 13 sampai 17 tahun, kamu menyatakan sudah mendapat izin dari orang tua atau wali untuk mendaftar dan membagikan data pendaftaranmu.',
+      'Data yang kamu isi benar dan milikmu sendiri.',
+      'Satu orang cukup mendaftar sekali per jalur (fans atau creator).',
+    ],
+  },
+  {
+    title: 'Daftar tunggu dan akses beta',
+    points: [
+      'Mendaftar tidak menjamin kamu langsung mendapat akses beta. Undangan bisa diberikan bertahap, dan kami yang menentukan urutan serta jumlahnya.',
+      'Jadwal beta, fitur, dan nama program bisa berubah atau dibatalkan sewaktu-waktu.',
+      'Pendaftaran dan keikutsertaan di beta gratis. Kami tidak pernah meminta pembayaran atau kata sandi untuk mendaftar. Kalau ada yang mengatasnamakan Konnetto dan meminta itu, abaikan dan laporkan ke kami.',
+    ],
+  },
+  {
+    title: 'Program Founding Creator',
+    points: [
+      'Pengajuan terbuka untuk creator yang aktif berkarya untuk fandom, dengan karya yang aman untuk semua umur (SFW).',
+      'Kami meninjau setiap pengajuan satu per satu dan berhak menerima atau menolak tanpa wajib menjelaskan alasannya.',
+      'Manfaat yang disebut di halaman (misalnya Creator Home dan badge Founding Creator) adalah rencana dan bisa berubah. Detail final akan disampaikan kepada creator yang terpilih.',
+      'Mengirim pengajuan tidak membentuk hubungan kerja, kemitraan, atau kewajiban pembayaran antara kamu dan kami.',
+    ],
+  },
+  {
+    title: 'Karya dan tautan yang kamu kirim',
+    points: [
+      'Hak cipta atas karyamu tetap milikmu.',
+      'Kamu mengizinkan kami membuka dan melihat tautan karya serta akun media sosial yang kamu kirim, hanya untuk meninjau pengajuan.',
+      'Kami tidak akan menampilkan karyamu di materi promosi Konnetto tanpa izin tertulis darimu.',
+      'Pastikan karya yang kamu kirim adalah karyamu sendiri atau kamu punya izin untuk membagikannya.',
+    ],
+  },
+  {
+    title: 'Komunikasi',
+    points: [
+      'Dengan mendaftar, kamu setuju kami hubungi lewat email atau WhatsApp terkait pendaftaran, undangan beta, dan perkembangan Konnetto.',
+      `Kamu bisa berhenti menerima pesan kapan saja dengan membalas pesan kami atau menghubungi ${email}.`,
+    ],
+  },
+  {
+    title: 'Data pribadi',
+    points: [
+      'Kami mengumpulkan dan mengelola data pendaftaranmu sesuai Kebijakan Privasi dan Undang-Undang Pelindungan Data Pribadi (UU No. 27 Tahun 2022).',
+      `Kamu bisa meminta data pendaftaranmu dilihat, diperbaiki, atau dihapus kapan saja lewat ${email}.`,
+    ],
+  },
+  {
+    title: 'Hal yang tidak boleh dilakukan',
+    points: [
+      'Mendaftar dengan data orang lain atau data palsu.',
+      'Mengirim konten yang melanggar hukum, mengandung kebencian, pornografi, atau melanggar hak cipta.',
+      'Mengirim pendaftaran massal secara otomatis (bot) atau mengganggu sistem pendaftaran.',
+    ],
+    note: 'Kami berhak menghapus pendaftaran yang melanggar ketentuan ini.',
+  },
+  {
+    title: 'Batasan tanggung jawab',
+    points: [
+      'Halaman ini dan seluruh informasinya disediakan "apa adanya" selama tahap pengembangan.',
+      'Kami tidak bertanggung jawab atas kerugian akibat perubahan, penundaan, atau pembatalan beta maupun program Founding Creator.',
+    ],
+  },
+  {
+    title: 'Perubahan syarat',
+    points: [
+      'Syarat ini bisa kami perbarui. Tanggal di bagian atas akan selalu menunjukkan versi terbaru, dan untuk perubahan penting kami akan memberi tahu lewat email.',
+    ],
+  },
+  {
+    title: 'Hukum yang berlaku',
+    points: [
+      'Syarat ini tunduk pada hukum Republik Indonesia. Perselisihan akan diselesaikan secara musyawarah terlebih dahulu, dan bila tidak tercapai, melalui pengadilan negeri yang berwenang.',
+    ],
+  },
+];
+---
+
+<BaseLayout title="Syarat dan Ketentuan | Konnetto" description="Syarat dan ketentuan pendaftaran komunitas awal dan Founding Creator Konnetto: siapa yang boleh daftar, aturan karya, dan hak serta kewajibanmu.">
+  <Navbar links={links} cta={cta} homeHref="/" />
+
+  <main id="konten" class="container-page max-w-3xl pt-28 pb-20">
+    <h1 class="m-0 font-display text-display-3 md:text-display-2">Syarat dan Ketentuan</h1>
+    <p class="mt-3 text-body-sm text-ink-muted">Terakhir diperbarui: {lastUpdated}</p>
+
+    <ol class="terms m-0 mt-6 list-none p-0">
+      {
+        sections.map((section, index) => (
+          <li class="mt-10">
+            <h2 class="m-0 font-display text-title">
+              {index + 1}. {section.title}
+            </h2>
+            <ul class="mt-3 flex flex-col gap-2 pl-5 text-body text-ink-muted">
+              {section.points.map((point) => (
+                <li class="list-disc">{point}</li>
+              ))}
+            </ul>
+            {section.note && <p class="mt-3 text-body text-ink-muted">{section.note}</p>}
+          </li>
+        ))
+      }
+      <li class="mt-10">
+        <h2 class="m-0 font-display text-title">{sections.length + 1}. Kontak</h2>
+        <p class="mt-3 text-body text-ink-muted">
+          Pertanyaan tentang Syarat ini bisa dikirim ke{' '}
+          <a href={`mailto:${email}`} class="font-semibold text-accent underline underline-offset-4 hover:text-ink">{email}</a>.
+        </p>
+      </li>
+    </ol>
+  </main>
+
+  <Footer />
+</BaseLayout>

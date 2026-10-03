@@ -1,0 +1,33 @@
+---
+/**
+ * Halaman 404. Cloudflare Pages otomatis menampilkan dist/404.html untuk alamat yang tidak ada.
+ * Copy belum ada di artboard; ini usulan (silakan disesuaikan).
+ */
+import BaseLayout from '../layouts/BaseLayout.astro';
+import Navbar from '../components/Navbar.astro';
+import Footer from '../components/sections/Footer.astro';
+import { ANCHORS, nav } from '../data/content';
+import { getSticker, stickerAlt } from '../data/stickers';
+
+// Link navbar menunjuk ke section di halaman utama.
+const links = nav.links.map((link) => ({ ...link, href: `/${link.href}` }));
+const cta = { ...nav.cta, href: `/${nav.cta.href}` };
+const sticker = getSticker('wkwkwk');
+---
+
+<BaseLayout title="Halaman tidak ditemukan | Konnetto" description="Halaman yang kamu cari tidak ada di Konnetto." noindex>
+  <Navbar links={links} cta={cta} homeHref="/" />
+
+  <main id="konten" class="container-page flex min-h-[70dvh] max-w-3xl flex-col items-start justify-center gap-6 pt-28 pb-20">
+    <img src={sticker.url} alt={stickerAlt(sticker)} width="140" height="140" class="size-[120px] -rotate-6 md:size-[140px]" />
+    <p class="m-0 font-display text-label tracking-[0.08em] text-accent-pink uppercase">Error 404</p>
+    <h1 class="heading-section">Waduh, halamannya nggak ketemu.</h1>
+    <p class="lead-section max-w-xl">Mungkin link-nya salah ketik, atau halamannya sudah pindah. Yuk balik ke beranda.</p>
+    <div class="flex flex-wrap gap-3">
+      <a class="kn-btn kn-btn--primary kn-btn--lg" href="/">Balik ke beranda</a>
+      <a class="kn-btn kn-btn--outline kn-btn--lg" href={`/#${ANCHORS.signup}`}>Gabung komunitas awal</a>
+    </div>
+  </main>
+
+  <Footer />
+</BaseLayout>

@@ -1,0 +1,25 @@
+---
+/**
+ * Username dengan simbol (✧ ♡ ☆) dirender memakai font simbol, seperti di artboard.
+ * Contoh: <Username name="nama✧contoh" />. Username contoh saat ini tanpa simbol, jadi
+ * komponen ini cukup menampilkan teks biasa.
+ */
+import { splitUsername } from '../data/users';
+
+interface Props {
+  name: string;
+}
+
+const { pre, sym, post } = splitUsername(Astro.props.name);
+---
+
+{pre}{sym && <span class="username-sym">{sym}</span>}{post}
+
+<!-- is:global: ChatFeed juga membuat span ini lewat JavaScript, jadi style tidak boleh scoped. -->
+<style is:global>
+  .username-sym {
+    font-family: 'Noto Sans Symbols 2', 'Segoe UI Symbol', 'Apple Symbols', 'DejaVu Sans', sans-serif;
+    font-weight: 400;
+    margin: 0 1px;
+  }
+</style>

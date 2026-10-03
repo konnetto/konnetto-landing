@@ -1,0 +1,299 @@
+---
+/**
+ * Pesan dari tim: "Karena budaya ini layak punya rumah." Rangkaian bubble chat dari
+ * akun "konnetto.official" (avatar Tsuba), lalu CTA.
+ *
+ * Mobile: hanya `mobileVisible` bubble pertama; sisanya di balik tombol "lanjut baca ↓".
+ * Desktop (1100px+): judul rata tengah, kolom bubble 760px di tengah, semua bubble tampil.
+ *
+ * Script di bawah:
+ *  - Saat section masuk layar (sekali saja), bubble muncul satu per satu dengan jeda
+ *    seperti di artboard, lalu CTA. Reduced motion: semua langsung tampil.
+ *  - Mobile: "lanjut baca ↓" memunculkan sisa bubble dan fokus pindah ke bubble pertama yang baru.
+ *    Tanpa JavaScript tombol ini tidak berfungsi (sisa pesan tetap terbaca di desktop).
+ */
+import { adminMessage } from '../../data/content';
+import { getUser } from '../../data/users';
+import RichText from '../RichText.astro';
+import Avatar from '../Avatar.astro';
+
+const admin = getUser('admin');
+const firstMessages = adminMessage.messages.slice(0, adminMessage.mobileVisible);
+const restMessages = adminMessage.messages.slice(adminMessage.mobileVisible);
+---
+
+<section aria-labelledby="admin-heading" class="pt-8 pb-8 md:pt-6 md:pb-24 wide:pb-32">
+  <div class="container-page flex flex-col gap-6 max-md:px-4 wide:items-center wide:gap-14">
+    <h2 id="admin-heading" class="heading-section max-w-[900px] px-1 wide:text-center">{adminMessage.heading}</h2>
+
+    <div data-team class="kn-msg team">
+      <Avatar class="team-av" user={admin} size={48} />
+      <div class="kn-msg__body team-body">
+        <span class="team-name">{admin.username}</span>
+        {
+          firstMessages.map((message) => (
+            <div class="kn-bubble kn-bubble--other tb">
+              <span>
+                <RichText text={message.text} />
+              </span>
+              <span class="chat-ts">{message.time}</span>
+            </div>
+          ))
+        }
+        <div id="team-rest" class="team-rest team-rest--collapsed" data-team-rest>
+          {
+            restMessages.map((message) => (
+              <div class="kn-bubble kn-bubble--other tb" tabindex="-1">
+                <span>
+                  <RichText text={message.text} />
+                </span>
+                <span class="chat-ts">{message.time}</span>
+              </div>
+            ))
+          }
+        </div>
+        <button type="button" class="tb-more" data-team-more aria-expanded="false" aria-controls="team-rest">
+          {adminMessage.moreLabel}
+        </button>
+        <a class="kn-btn kn-btn--primary kn-btn--lg team-cta" href={adminMessage.cta.href} data-pick-tab="fans">
+          {adminMessage.cta.label}
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .team {
+    position: relative;
+    max-width: none;
+    align-items: flex-end;
+    gap: 10px;
+  }
+  .team-av {
+    flex-shrink: 0;
+    display: block;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: 50% 38%;
+    background: var(--primary);
+  }
+  .team-body {
+    flex: 1;
+    min-width: 0;
+    gap: 8px;
+  }
+  .team-name {
+    padding: 0 6px;
+    font: 700 13px/18px var(--font-sans);
+    color: var(--accent);
+  }
+  .tb {
+    align-self: flex-start;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 10px 12px 8px 14px;
+    border-bottom-left-radius: 18px;
+    font-size: 16px;
+    line-height: 24px;
+  }
+  .team-rest {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .team-rest--collapsed {
+    display: none;
+  }
+  /* "lanjut baca ↓": pill outline */
+  .tb-more {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--control-md);
+    margin: 2px 0 0;
+    padding: 0 18px;
+    border-radius: var(--radius-pill);
+    border: 1.5px solid var(--line-strong);
+    background: transparent;
+    color: var(--ink);
+    font: 700 15px/20px var(--font-sans);
+    cursor: pointer;
+  }
+  .tb-more:hover {
+    background: var(--surface-raised);
+  }
+  .tb-more[hidden] {
+    display: none;
+  }
+  .tb:focus {
+    outline: none;
+  }
+
+  /* Bubble muncul satu per satu (dipasang script: .is-armed lalu .is-in, jeda di --d) */
+  .team.is-armed .team-name,
+  .team.is-armed .tb,
+  .team.is-armed .tb-more,
+  .team.is-armed .team-cta {
+    opacity: 0;
+    transform: translateY(10px) scale(0.97);
+  }
+  /* Avatar muncul bareng bubble pertama, lalu ikut turun ke bubble terbaru (translateY dari script) */
+  .team.is-armed .team-av {
+    opacity: 0;
+    transition:
+      opacity 0.3s ease,
+      transform 0.38s cubic-bezier(0.2, 0.8, 0.3, 1.2);
+  }
+  .team.is-armed .team-av.is-shown {
+    opacity: 1;
+  }
+  .team.is-armed.is-in .team-name,
+  .team.is-armed.is-in .tb,
+  .team.is-armed.is-in .tb-more,
+  .team.is-armed.is-in .team-cta {
+    animation: team-pop 0.38s cubic-bezier(0.2, 0.8, 0.3, 1.2) var(--d, 0s) forwards;
+  }
+  @keyframes team-pop {
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+  .team-cta {
+    align-self: flex-start;
+    max-width: 100%;
+    margin-top: 8px;
+  }
+
+  @media (max-width: 359px) {
+    .team-cta {
+      padding: 0 var(--space-5);
+    }
+  }
+
+  @media (min-width: 1100px) {
+    .team {
+      width: 760px;
+      gap: 14px;
+    }
+    .team-av {
+      width: 48px;
+      height: 48px;
+    }
+    .team-name {
+      font-size: 15px;
+      line-height: 20px;
+    }
+    .tb {
+      gap: 14px;
+      padding: 14px 18px 12px 22px;
+      border-bottom-left-radius: 20px;
+      font-size: 18px;
+      line-height: 28px;
+    }
+    /* Desktop: semua bubble tampil, tanpa tombol "lanjut baca" */
+    .team-rest--collapsed {
+      display: flex;
+    }
+    .tb-more {
+      display: none;
+    }
+    /* CTA desktop berukuran standar (artboard: kn-btn tanpa --lg) */
+    .team-cta {
+      --h: var(--control-md);
+      margin-top: 10px;
+      padding: 0 var(--space-5);
+      font-size: 15px;
+    }
+  }
+</style>
+
+<script>
+  import { prefersReducedMotion } from '../../lib/motion';
+
+  const team = document.querySelector<HTMLElement>('[data-team]');
+  if (team) setupTeam(team);
+
+  function setupTeam(team: HTMLElement) {
+    const first = [...team.querySelectorAll<HTMLElement>(':scope .team-body > .tb')];
+    const rest = team.querySelector<HTMLElement>('[data-team-rest]');
+    const restBubbles = [...(rest?.querySelectorAll<HTMLElement>('.tb') ?? [])];
+    const more = team.querySelector<HTMLButtonElement>('[data-team-more]');
+    const cta = team.querySelector<HTMLElement>('.team-cta');
+
+    // "lanjut baca": tampilkan sisa bubble (mobile)
+    more?.addEventListener('click', () => {
+      rest?.classList.remove('team-rest--collapsed');
+      more.setAttribute('aria-expanded', 'true');
+      more.hidden = true;
+      restBubbles[0]?.focus({ preventScroll: true });
+    });
+
+    if (prefersReducedMotion() || !('IntersectionObserver' in window)) return;
+
+    // Jeda kemunculan (detik), dari artboard
+    const desktop = window.matchMedia('(min-width: 1100px)').matches;
+    const setDelay = (el: HTMLElement | null | undefined, seconds: number) => el?.style.setProperty('--d', `${seconds}s`);
+    const bubbleDelays = [0, 0.7, 1.6, 2.3, 2.65, 3, 4];
+    [...first, ...restBubbles].forEach((bubble, index) => setDelay(bubble, bubbleDelays[index] ?? 4));
+    if (desktop) {
+      setDelay(cta, 5.3);
+    } else {
+      setDelay(more, 2.9);
+      setDelay(cta, 3.1);
+      // Sisa bubble di mobile baru muncul setelah "lanjut baca", jadi jedanya pendek.
+      restBubbles.forEach((bubble, index) => setDelay(bubble, index * 0.15));
+    }
+
+    // Avatar: tanpa ini ia sudah tampil di dasar ruang kosong sebelum bubble-nya muncul.
+    // Tiap bubble muncul, avatar digeser sejajar bubble itu; saat CTA muncul, kembali ke posisi
+    // aslinya (sejajar CTA, sesuai artboard).
+    const avatar = team.querySelector<HTMLElement>('.team-av');
+    const delayOf = (el: HTMLElement) => parseFloat(el.style.getPropertyValue('--d')) * 1000 || 0;
+    const bottomInTeam = (el: HTMLElement) => {
+      let y = el.offsetHeight;
+      for (let node: HTMLElement | null = el; node && node !== team; node = node.offsetParent as HTMLElement | null) {
+        y += node.offsetTop;
+      }
+      return y;
+    };
+    const alignAvatarTo = (bubble: HTMLElement) => {
+      if (!avatar) return;
+      avatar.style.transform = `translateY(${bottomInTeam(bubble) - bottomInTeam(avatar)}px)`;
+      avatar.classList.add('is-shown');
+    };
+    const playAvatar = () => {
+      if (!avatar) return;
+      // Hanya bubble yang memang tampil (di mobile, sisanya menunggu "lanjut baca")
+      const steps = desktop ? [...first, ...restBubbles] : first;
+      steps.forEach((bubble) => window.setTimeout(() => alignAvatarTo(bubble), delayOf(bubble)));
+      if (cta) {
+        window.setTimeout(() => {
+          avatar.style.transform = '';
+        }, delayOf(cta));
+      }
+    };
+    // Posisi awal: sejajar bubble pertama, supaya tidak meluncur dari bawah saat pertama muncul.
+    if (avatar && first[0]) {
+      avatar.style.transition = 'none';
+      avatar.style.transform = `translateY(${bottomInTeam(first[0]) - bottomInTeam(avatar)}px)`;
+    }
+
+    team.classList.add('is-armed');
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return;
+        if (avatar) avatar.style.transition = '';
+        team.classList.add('is-in');
+        playAvatar();
+        observer.disconnect();
+      },
+      { threshold: 0.25 },
+    );
+    observer.observe(team);
+  }
+</script>

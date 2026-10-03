@@ -1,0 +1,414 @@
+---
+/**
+ * Mockup Fandom Passport (dipakai di Concept): kartu identitas putih yang sedikit miring,
+ * lalu halaman kertas bergaris berisi cap kegiatan bertekstur tinta.
+ *
+ * Sempit: kartu di atas, halaman cap di bawah, 3 cap (yang `mobile: true`).
+ * Lebar (wadah >= 640px): kartu di kiri, halaman cap di kanan, 5 cap.
+ * Memakai container query (lebar wadahnya sendiri, bukan lebar layar), karena di
+ * desktop 1100-1300px kartu passport cukup sempit walau layarnya lebar.
+ *
+ * Animasi (script di bawah):
+ *  - Cap bertanda `thump` ("Early Member") mulai tak terlihat, lalu "dicap" dan halaman
+ *    bergetar saat mockup masuk layar, sekali saja.
+ *  - Desktop (mouse): mockup miring 3D sedikit mengikuti posisi kursor.
+ *  - Tanpa JavaScript / reduced motion: semua cap langsung tampil, tanpa miring.
+ */
+import { concept } from '../../data/content';
+import { getUser } from '../../data/users';
+import Username from '../Username.astro';
+import Avatar from '../Avatar.astro';
+
+const { passport } = concept;
+const holder = getUser(passport.holder.userId);
+const shapeClass = { round: 'st-round', rect: 'st-rect', oval: 'st-oval' };
+const inkClass = { violet: 'ink-violet', pink: 'ink-pink', lavender: 'ink-lav', deep: 'ink-deep' };
+---
+
+<div class="pp" data-passport>
+  <!-- Teks pengganti untuk screen reader: versi sempit (3 cap) dan lebar (5 cap) -->
+  <p class="pp-alt-narrow sr-only">{passport.altMobile}</p>
+  <p class="pp-alt-wide sr-only">{passport.alt}</p>
+
+  <div class="pp-inner" aria-hidden="true">
+    <!-- Kartu identitas -->
+    <div class="pp-id">
+      <div class="pp-id__top">
+        <Avatar class="pp-av" user={holder} size={56} alt="" />
+        <div class="pp-who">
+          <span class="pp-un">{holder.username}</span>
+          <span class="pp-since">{passport.holder.since}</span>
+        </div>
+      </div>
+      <span class="pp-kicker">{passport.holder.number}</span>
+      <div class="pp-fandoms">
+        {passport.holder.fandoms.map((fandom) => <span>{fandom}</span>)}
+      </div>
+      <span class="pp-early">{passport.holder.badge}</span>
+    </div>
+
+    <!-- Halaman cap -->
+    <div class="pp-page" data-passport-page>
+      <!-- Filter tekstur tinta untuk cap (dipakai lewat filter: url(#pp-ink)) -->
+      <svg width="0" height="0" style="position: absolute" focusable="false">
+        <filter id="pp-ink" x="-5%" y="-5%" width="110%" height="110%">
+          <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="2" seed="7" result="n"></feTurbulence>
+          <feDisplacementMap in="SourceGraphic" in2="n" scale="1.8" result="d"></feDisplacementMap>
+          <feColorMatrix in="n" type="matrix" values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.2 1.95" result="m"></feColorMatrix>
+          <feComposite in="d" in2="m" operator="in"></feComposite>
+        </filter>
+      </svg>
+      <span class="pp-pg">{passport.page}</span>
+      {
+        passport.stamps.map((stamp, index) => (
+          <div class:list={['pp-s', `pp-s${index + 1}`, !stamp.mobile && 'pp-s--extra']}>
+            <div class:list={['st', shapeClass[stamp.shape], inkClass[stamp.ink]]} data-thump={stamp.thump ? '' : undefined}>
+              {stamp.lines.map((line) =>
+                typeof line === 'string' ? (
+                  <span>{line}</span>
+                ) : (
+                  <b>
+                    <Username name={line.b} />
+                  </b>
+                ),
+              )}
+            </div>
+          </div>
+        ))
+      }
+    </div>
+  </div>
+</div>
+
+<style>
+  /* Nilai warna di bawah dari artboard: kertas dan tinta tidak ada di token design system. */
+  .pp {
+    align-self: stretch;
+    perspective: 900px;
+    container: passport / inline-size;
+  }
+  .pp-s--extra,
+  .pp-alt-wide {
+    display: none;
+  }
+  .pp-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+    transform-style: preserve-3d;
+    transition: transform 0.18s ease-out;
+  }
+
+  /* Cap "dicap" saat terlihat (kelas dipasang script) */
+  .st.is-armed {
+    opacity: 0;
+  }
+  .st.is-armed.is-thump {
+    animation: pp-thump 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.3) 0.25s both;
+  }
+  @keyframes pp-thump {
+    0% {
+      opacity: 0;
+      transform: scale(2.6);
+    }
+    55% {
+      opacity: 0.95;
+      transform: scale(0.9);
+    }
+    72% {
+      transform: scale(1.05);
+    }
+    100% {
+      opacity: 0.82;
+      transform: scale(1);
+    }
+  }
+  .pp-page.is-hit {
+    animation: pp-shake 0.34s ease-out 0.5s;
+  }
+  @keyframes pp-shake {
+    0%,
+    100% {
+      translate: 0 0;
+    }
+    20% {
+      translate: -2px 1px;
+    }
+    40% {
+      translate: 2px -1px;
+    }
+    60% {
+      translate: -1px 1px;
+    }
+    80% {
+      translate: 1px 0;
+    }
+  }
+
+  /* Kartu identitas */
+  .pp-id {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 18px 18px 16px;
+    border-radius: 20px;
+    background: var(--paper);
+    color: #120e1f;
+    box-shadow:
+      0 14px 30px rgb(92 47 222 / 0.18),
+      0 2px 6px rgb(18 14 31 / 0.08);
+    transform: rotate(-1.5deg);
+  }
+  .pp-id__top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .pp-av {
+    flex-shrink: 0;
+    display: block;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    object-fit: cover;
+    object-position: 50% 35%;
+    background: var(--primary-soft);
+  }
+  .pp-who {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .pp-un {
+    font: 800 18px/22px var(--font-sans);
+  }
+  .pp-since {
+    font: 500 13px/18px var(--font-sans);
+    color: #5e5873;
+  }
+  .pp-kicker {
+    font: 800 10px/14px var(--font-sans);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    /* var(--primary), bukan --secondary seperti di artboard: --secondary di atas kertas putih
+       kontrasnya hanya 3.7:1 (teks 10px butuh 4.5:1). */
+    color: var(--primary);
+  }
+  .pp-fandoms {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .pp-fandoms span {
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    background: #efe9ff;
+    color: var(--primary-soft);
+    font: 700 13px/18px var(--font-sans);
+  }
+  .pp-early {
+    padding: 4px 10px;
+    border-radius: 8px;
+    background: var(--primary);
+    color: var(--on-primary);
+    font: 800 12px/16px var(--font-sans);
+    letter-spacing: 0.04em;
+  }
+
+  /* Halaman cap: kertas bergaris */
+  .pp-page {
+    position: relative;
+    flex: none;
+    min-width: 0;
+    height: 170px;
+    border-radius: 14px;
+    background-color: #fff8fb;
+    background-image: repeating-linear-gradient(0deg, transparent 0 22px, rgb(92 47 222 / 0.06) 22px 23px);
+    border: 1px solid rgb(92 47 222 / 0.14);
+    box-shadow: 0 10px 24px rgb(92 47 222 / 0.12);
+    transform: rotate(1deg);
+    overflow: hidden;
+  }
+  .pp-pg {
+    position: absolute;
+    right: 12px;
+    bottom: 8px;
+    font: 700 11px/1 var(--font-sans);
+    color: rgb(92 47 222 / 0.4);
+  }
+
+  /* Posisi cap, mobile (cap 2 dan 4 disembunyikan) */
+  .pp-s {
+    position: absolute;
+  }
+  .pp-s1 {
+    left: 12px;
+    top: 12px;
+    transform: rotate(-12deg);
+  }
+  .pp-s3 {
+    left: 110px;
+    top: 104px;
+    transform: rotate(-5deg);
+  }
+  .pp-s5 {
+    left: 196px;
+    top: 12px;
+    transform: rotate(-9deg);
+  }
+
+  /* Cap */
+  .st {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1px;
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font: 700 9px/12px var(--font-sans);
+    border: 2.5px solid currentColor;
+    opacity: 0.82;
+    mix-blend-mode: multiply;
+    filter: url(#pp-ink);
+  }
+  .st b {
+    font: 800 11px/13px var(--font-display);
+    letter-spacing: 0.02em;
+  }
+  .st :global(.username-sym) {
+    text-transform: none;
+  }
+  .st-round {
+    width: 110px;
+    height: 110px;
+    padding: 12px;
+    border-radius: 50%;
+    box-shadow:
+      inset 0 0 0 4px #fff8fb,
+      inset 0 0 0 5.5px currentColor;
+  }
+  .st-rect {
+    min-width: 132px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    box-shadow:
+      inset 0 0 0 3px #fff8fb,
+      inset 0 0 0 4.5px currentColor;
+  }
+  .st-oval {
+    width: 178px;
+    height: 64px;
+    padding: 6px 16px;
+    border-radius: 50%;
+  }
+  .ink-violet {
+    color: var(--primary);
+  }
+  .ink-deep {
+    color: var(--primary);
+    width: 96px;
+    height: 96px;
+  }
+  .ink-pink {
+    color: #d9609a;
+  }
+  .ink-lav {
+    color: #7a5cd6;
+  }
+
+  /* Wadah lebar: kartu di kiri, halaman cap di kanan, 5 cap */
+  @container passport (min-width: 640px) {
+    .pp-s--extra {
+      display: block;
+    }
+    .pp-alt-narrow {
+      display: none;
+    }
+    .pp-alt-wide {
+      display: block;
+    }
+    .pp-inner {
+      flex-direction: row;
+      align-items: center;
+      gap: 22px;
+    }
+    .pp-id {
+      flex-shrink: 0;
+      width: 290px;
+      transform: rotate(-2deg);
+    }
+    .pp-page {
+      flex: 1;
+      height: 236px;
+      transform: rotate(1.5deg);
+    }
+    .pp-s1 {
+      left: 14px;
+      top: 14px;
+      transform: rotate(-12deg);
+    }
+    .pp-s2 {
+      left: 150px;
+      top: 20px;
+      transform: rotate(7deg);
+    }
+    .pp-s3 {
+      left: 24px;
+      top: 138px;
+      transform: rotate(-5deg);
+    }
+    .pp-s4 {
+      left: 198px;
+      top: 92px;
+      transform: rotate(11deg);
+    }
+    .pp-s5 {
+      left: 214px;
+      top: 134px;
+      transform: rotate(-9deg);
+    }
+  }
+</style>
+
+<script>
+  import { canHover, prefersReducedMotion } from '../../lib/motion';
+
+  document.querySelectorAll<HTMLElement>('[data-passport]').forEach((passport) => {
+    if (prefersReducedMotion()) return;
+    const inner = passport.querySelector<HTMLElement>('.pp-inner');
+    const page = passport.querySelector<HTMLElement>('[data-passport-page]');
+    const stamp = passport.querySelector<HTMLElement>('[data-thump]');
+
+    // Cap terakhir "dicap" saat 40% mockup terlihat, sekali saja.
+    if (stamp && page && 'IntersectionObserver' in window) {
+      stamp.classList.add('is-armed');
+      const observer = new IntersectionObserver(
+        ([entry]) => {
+          if (!entry.isIntersecting) return;
+          stamp.classList.add('is-thump');
+          page.classList.add('is-hit');
+          observer.disconnect();
+        },
+        { threshold: 0.4 },
+      );
+      observer.observe(passport);
+    }
+
+    // Miring 3D mengikuti kursor (hanya perangkat dengan mouse).
+    if (inner && canHover()) {
+      passport.addEventListener('mousemove', (event) => {
+        const rect = passport.getBoundingClientRect();
+        const x = (event.clientX - rect.left) / rect.width - 0.5;
+        const y = (event.clientY - rect.top) / rect.height - 0.5;
+        inner.style.transform = `rotateX(${(-y * 6).toFixed(2)}deg) rotateY(${(x * 8).toFixed(2)}deg)`;
+      });
+      passport.addEventListener('mouseleave', () => (inner.style.transform = ''));
+    }
+  });
+</script>

@@ -1,0 +1,287 @@
+---
+/**
+ * Navbar sticky dan transparan, sesuai artboard Versi B.
+ * Dibangun dari komponen design system: kn-nav, kn-wordmark, kn-tag, kn-btn.
+ *
+ * Desktop (>= 900px, breakpoint bawaan kn-nav):
+ *  - Di paling atas: logo + tag "Pre-release" + menu di tengah + CTA putih.
+ *  - Setelah scroll: tag dan menu memudar (dan dibuat `inert`), tersisa logo + CTA.
+ *    CTA dan logo diberi bayangan supaya tetap terbaca di atas konten.
+ * Mobile (< 900px):
+ *  - Logo + CTA kecil + tombol menu, tetap tampil saat scroll.
+ *  - Setelah scroll: latar gelap blur dengan garis tipis di bawah.
+ *  - CTA navbar baru muncul setelah CTA hero ([data-hero-cta]) lewat ke atas navbar,
+ *    supaya tidak ada dua tombol yang sama di layar. Tanpa CTA hero, CTA navbar selalu tampil.
+ *  - Tombol menu membuka panel link (desain panel belum ada di artboard).
+ *
+ * Deteksi scroll memakai IntersectionObserver pada "sentinel" tak terlihat
+ * di dekat puncak halaman, bukan event scroll.
+ */
+import { nav, type Link } from '../data/content';
+
+interface Props {
+  links?: Link[];
+  cta?: Link;
+  /** Tag kecil di samping logo. Kosongkan untuk menyembunyikan. */
+  tag?: string;
+  /** Tujuan saat logo diklik. */
+  homeHref?: string;
+}
+
+const { links = nav.links, cta = nav.cta, tag = nav.tag, homeHref = '#top' } = Astro.props;
+---
+
+<!-- Sentinel: selama ini terlihat, user masih di puncak halaman (artboard: 80px desktop, 16px mobile). -->
+<div data-nav-sentinel class="pointer-events-none absolute top-4 left-0 h-px w-px min-[900px]:top-20" aria-hidden="true">
+</div>
+
+<header data-navbar data-scrolled="false" data-cta-hidden="false" class="nav-calm sticky top-0 z-40 min-[900px]:-mb-16">
+  <div class="kn-nav mx-auto h-16 max-w-(--container-page) gap-2 bg-transparent pr-2 pl-4 min-[900px]:h-16 min-[900px]:gap-4 min-[900px]:px-8 wide:px-20">
+    <a class="kn-wordmark" href={homeHref}>konnetto</a>
+    {tag && <span class="nav-fade kn-tag kn-tag--soon hidden min-[900px]:inline-flex">{tag}</span>}
+
+    <!-- Menu desktop. kn-nav__links otomatis tersembunyi di bawah 900px. -->
+    <nav data-nav-links class="nav-fade kn-nav__links gap-1" aria-label="Menu utama">
+      {links.map((link) => <a href={link.href}>{link.label}</a>)}
+    </nav>
+
+    <div class="kn-nav__end">
+      <a class="nav-cta kn-btn kn-btn--sm" href={cta.href} data-umami-event="nav-cta-click">{cta.label}</a>
+
+      <!-- Tombol menu mobile. kn-nav__menu otomatis tersembunyi mulai 900px. -->
+      <button
+        type="button"
+        data-menu-toggle
+        class="nav-burger group/toggle kn-btn kn-btn--ghost kn-btn--icon kn-nav__menu"
+        aria-controls="mobile-menu"
+        aria-expanded="false"
+        aria-label="Buka menu"
+      >
+        <svg class="group-aria-expanded/toggle:hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M4 8h16M4 16h16"></path>
+        </svg>
+        <svg class="hidden group-aria-expanded/toggle:block" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18"></path>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Panel menu mobile -->
+  <div id="mobile-menu" data-mobile-menu hidden class="px-2 pb-2 min-[900px]:hidden">
+    <nav aria-label="Menu utama (mobile)" class="rounded-lg border border-line bg-surface p-2 shadow-md">
+      <ul class="flex flex-col">
+        {
+          links.map((link) => (
+            <li>
+              <a href={link.href} class="flex min-h-(--control-md) items-center rounded-md px-4 text-body font-semibold text-ink no-underline hover:bg-surface-raised">
+                {link.label}
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<style>
+  /*
+   * Gaya khusus navbar dari artboard Versi B ("nav-calm"), di atas kn-nav.
+   * Style di file .astro otomatis hanya berlaku untuk komponen ini.
+   */
+
+  /* Link menu: abu-abu tipis, putih saat hover, tanpa latar (menimpa kn-nav__links) */
+  .kn-nav__links a {
+    padding: 8px 12px;
+    font: 500 15px/20px var(--font-sans);
+    color: rgb(249 249 249 / 0.7);
+    background: none;
+    transition: color 0.15s ease;
+  }
+  .kn-nav__links a:hover,
+  .kn-nav__links a:focus-visible {
+    color: var(--ink);
+    background: none;
+  }
+
+  /* CTA: pill putih */
+  .nav-cta {
+    height: 34px;
+    padding: 0 14px;
+    border: 0;
+    background: var(--paper);
+    color: var(--on-tertiary);
+    font: 700 13px/1 var(--font-sans);
+    transition:
+      box-shadow 0.25s ease,
+      background-color 0.15s ease;
+  }
+  .nav-cta:hover {
+    background: #ffffff;
+  }
+  .nav-cta:focus-visible {
+    outline-offset: 3px;
+  }
+  @media (min-width: 900px) {
+    .nav-cta {
+      height: 36px;
+      padding: 0 16px;
+      font-size: 14px;
+    }
+  }
+
+  .nav-burger svg {
+    width: 22px;
+    height: 22px;
+  }
+
+  /* Mobile: latar saat scroll, dan CTA disembunyikan selama CTA hero masih terlihat */
+  @media (max-width: 899px) {
+    [data-navbar] {
+      transition: background-color 0.25s ease;
+    }
+    [data-scrolled='true'] {
+      background: rgb(15 11 26 / 0.86);
+      backdrop-filter: blur(12px);
+      box-shadow: 0 1px 0 rgb(255 255 255 / 0.06);
+    }
+    [data-scrolled='true'] .nav-burger {
+      background: transparent;
+      box-shadow: none;
+    }
+    [data-cta-hidden='true'] .nav-cta {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+      transition:
+        opacity 0.2s ease,
+        visibility 0s linear 0.2s;
+    }
+  }
+
+  /* Layar sangat sempit (< 360px, di luar artboard 390): kecilkan sedikit supaya muat satu baris */
+  @media (max-width: 359px) {
+    .kn-wordmark {
+      font-size: 17px;
+    }
+    .nav-cta {
+      padding: 0 10px;
+      font-size: 12px;
+    }
+    .nav-burger {
+      --h: 40px;
+    }
+  }
+
+  /* Elemen yang memudar saat scroll */
+  .nav-fade {
+    transition:
+      opacity 0.25s ease,
+      visibility 0s linear 0s;
+  }
+  [data-scrolled='true'] .nav-fade {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.25s ease,
+      visibility 0s linear 0.25s;
+  }
+
+  /* Bayangan supaya logo, CTA, dan tombol menu tetap terbaca di atas konten */
+  .kn-wordmark {
+    transition: filter 0.25s ease;
+  }
+  [data-scrolled='true'] .kn-wordmark {
+    filter: drop-shadow(0 1px 2px rgb(6 3 14 / 0.75)) drop-shadow(0 0 10px rgb(6 3 14 / 0.5));
+  }
+  [data-scrolled='true'] .nav-cta {
+    box-shadow:
+      0 6px 18px rgb(6 3 14 / 0.45),
+      0 1px 3px rgb(6 3 14 / 0.45);
+  }
+  .nav-burger {
+    transition:
+      box-shadow 0.25s ease,
+      background-color 0.25s ease;
+  }
+  [data-scrolled='true'] .nav-burger {
+    background: rgb(15 11 26 / 0.55);
+    box-shadow: 0 6px 18px rgb(6 3 14 / 0.45);
+  }
+</style>
+
+<script>
+  // Script di komponen Astro otomatis di-bundle dan dijalankan sekali per halaman.
+
+  const header = document.querySelector<HTMLElement>('[data-navbar]');
+  const sentinel = document.querySelector<HTMLElement>('[data-nav-sentinel]');
+  const desktopLinks = header?.querySelector<HTMLElement>('[data-nav-links]');
+  const toggle = header?.querySelector<HTMLButtonElement>('[data-menu-toggle]');
+  const menu = header?.querySelector<HTMLElement>('[data-mobile-menu]');
+
+  if (header && sentinel && desktopLinks && toggle && menu) {
+    // ---- Menu mobile ------------------------------------------------------
+
+    const isMenuOpen = () => toggle.getAttribute('aria-expanded') === 'true';
+
+    function openMenu() {
+      menu!.hidden = false;
+      toggle!.setAttribute('aria-expanded', 'true');
+      toggle!.setAttribute('aria-label', 'Tutup menu');
+      menu!.querySelector('a')?.focus();
+    }
+
+    function closeMenu({ restoreFocus = true } = {}) {
+      if (!isMenuOpen()) return;
+      menu!.hidden = true;
+      toggle!.setAttribute('aria-expanded', 'false');
+      toggle!.setAttribute('aria-label', 'Buka menu');
+      if (restoreFocus) toggle!.focus();
+    }
+
+    toggle.addEventListener('click', () => (isMenuOpen() ? closeMenu() : openMenu()));
+
+    // Klik salah satu link: tutup menu (halaman akan scroll ke section).
+    menu.addEventListener('click', (event) => {
+      if ((event.target as HTMLElement).closest('a')) closeMenu({ restoreFocus: false });
+    });
+
+    // Escape menutup menu.
+    document.addEventListener('keydown', (event) => {
+      if (event.key === 'Escape') closeMenu();
+    });
+
+    // Klik di luar navbar menutup menu.
+    document.addEventListener('click', (event) => {
+      if (!header.contains(event.target as Node)) closeMenu({ restoreFocus: false });
+    });
+
+    // ---- Mode scrolled ----------------------------------------------------
+
+    function setScrolled(scrolled: boolean) {
+      header!.dataset.scrolled = String(scrolled);
+      // inert: menu desktop yang sudah memudar tidak bisa difokus dengan Tab
+      // dan tidak dibacakan screen reader.
+      desktopLinks!.inert = scrolled;
+    }
+
+    new IntersectionObserver(([entry]) => setScrolled(!entry.isIntersecting)).observe(sentinel);
+
+    // ---- CTA navbar mobile: tampil setelah CTA hero lewat ke atas navbar ----
+
+    const heroCta = document.querySelector<HTMLElement>('[data-hero-cta]');
+    if (heroCta) {
+      const NAV_HEIGHT = 64;
+      new IntersectionObserver(
+        ([entry]) => {
+          const passed = !entry.isIntersecting && entry.boundingClientRect.bottom < NAV_HEIGHT;
+          header!.dataset.ctaHidden = String(!passed);
+        },
+        // Area pengamatan dimulai di bawah navbar
+        { rootMargin: `-${NAV_HEIGHT}px 0px 0px 0px` },
+      ).observe(heroCta);
+    }
+  }
+</script>
