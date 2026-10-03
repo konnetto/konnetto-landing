@@ -1,5 +1,6 @@
 /**
- * Generate favicon dan OG image placeholder dari logo brand/konnetto-mark.png.
+ * Generate favicon dan ikon dari logo brand/konnetto-mark.png.
+ * (OG image bukan dari sini: public/og-image-v2.jpg, 1200x630, dibuat dari brand/og-image-v2.png.)
  * Jalankan: npm run icons
  *
  * Sumber: gambar persegi (tanpa transparansi) berisi kotak ungu bersudut bulat dengan
@@ -11,8 +12,6 @@
  *    'maskable' yang dipotong bulat/kotak oleh sistem.
  *
  * Kalau logo diganti, cukup timpa brand/konnetto-mark.png lalu jalankan ulang.
- * TODO: ganti og-image dengan desain final (1200x630) kalau sudah ada; cukup timpa
- *       public/og-image.png dan hapus bagian OG di bawah.
  */
 import sharp from 'sharp';
 import { writeFile } from 'node:fs/promises';
@@ -75,23 +74,4 @@ for (const px of [192, 512]) {
   await sharp(mark).resize(px, px).flatten({ background: MARK_PURPLE }).png().toFile(`public/icon-${px}.png`);
 }
 
-// OG image placeholder 1200x630
-const og = `
-<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630">
-  <defs>
-    <radialGradient id="g" cx="0.75" cy="0.2" r="0.8">
-      <stop offset="0" stop-color="#5C2FDE" stop-opacity="0.75"/>
-      <stop offset="1" stop-color="#0F0B1A" stop-opacity="0"/>
-    </radialGradient>
-  </defs>
-  <rect width="1200" height="630" fill="#0F0B1A"/>
-  <rect width="1200" height="630" fill="url(#g)"/>
-  <text x="96" y="400" font-family="Arial Black, Arial, sans-serif" font-weight="900" font-size="120" fill="#F9F9F9">konnetto</text>
-  <text x="100" y="470" font-family="Arial, sans-serif" font-size="40" fill="#F5B4CF">Tempat orang-orang yang ngerti kamu · pre-release</text>
-</svg>`;
-await sharp(Buffer.from(og))
-  .composite([{ input: await pngAt(140), left: 96, top: 150 }])
-  .png()
-  .toFile('public/og-image.png');
-
-console.log('Favicon, apple-touch-icon, ikon manifest, dan OG image dibuat di public/');
+console.log('Favicon, apple-touch-icon, dan ikon manifest dibuat di public/');

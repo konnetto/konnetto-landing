@@ -39,7 +39,8 @@ Perintah lain:
 - `node scripts/prepare-tsuba.mjs`: siapkan ilustrasi Tsuba mengintip di hero dari `brand/tsuba-peek-side.png`.
 - `node scripts/prepare-decorations.mjs`: siapkan avatar decoration dari `brand/decorations/*.png` (ring dipusatkan dan diskalakan otomatis, hasil di `public/img/decorations/`). Daftarkan dekorasi baru di `src/data/decorations.ts`, lalu pasang lewat field `decoration` di `src/data/users.ts`.
 - `node scripts/optimize-images.mjs`: ubah gambar sumber PNG/JPG di `brand/img/` jadi WebP di `public/img/` (path sama; gambar di `posts/` juga dapat versi kecil 480px untuk srcset). Gambar baru: taruh di `brand/img/<folder>/`, jalankan script, lalu pakai `asset('<folder>/<nama>.webp')`.
-- `npm run icons`: generate ulang favicon (`.ico`, 32 dan 48 px), `apple-touch-icon.png`, dan `og-image.png` dari logo `brand/konnetto-mark.png`.
+- `npm run icons`: generate ulang favicon (`.ico`, 32 dan 48 px), `apple-touch-icon.png`, dan ikon manifest (`icon-192.png`, `icon-512.png`) dari logo `brand/konnetto-mark.png`.
+- OG image (preview link di WhatsApp/X/Discord): `public/og-image-v2.jpg` (1200x630, JPG), dibuat dari `brand/og-image-v2.png`. Ganti file ini kalau desainnya berubah, dan naikkan nama versinya (`-v3`) supaya cache platform ikut diperbarui.
 
 ## Deploy ke Cloudflare Pages
 
