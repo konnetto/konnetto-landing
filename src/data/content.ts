@@ -72,14 +72,20 @@ export const nav = {
 // ---------------------------------------------------------------------------
 
 export const hero = {
-  /** Baris headline. Baris terakhir (`highlight`) berwarna pink. */
-  headlineLines: ['Tempat orang-', 'orang yang'],
+  /**
+   * Headline dalam tiga potong, karena pemenggalan barisnya beda per layar (artboard):
+   *  - desktop: "Tempat orang- / orang yang / ngerti kamu."
+   *  - mobile:  "Tempat / orang-orang yang / ngerti kamu."
+   * Teks utuhnya tetap "Tempat orang-orang yang ngerti kamu." (`headlineHighlight` berwarna pink).
+   */
+  headlineParts: ['Tempat', 'orang-', 'orang yang'],
   headlineHighlight: 'ngerti kamu.',
   /** Jam "terkirim" di bubble headline dan lead. */
   sentAt: '21.05',
   lead: 'Konnetto adalah rumah untuk otaku Indonesia: heboh bareng tiap episode baru, ketemu teman sefandom, dan dukung creator favoritmu.',
   primaryCta: { label: 'Gabung komunitas awal', href: a('fans') } satisfies Link,
-  creatorLink: { label: 'Kamu creator? Daftar jadi Founding Creator →', href: a('signup') } satisfies Link,
+  //   (spasi tak terputus) supaya panah tidak turun sendirian ke baris baru di layar sempit.
+  creatorLink: { label: 'Kamu creator? Daftar jadi Founding Creator →', href: a('signup') } satisfies Link,
 };
 
 // Mading komunitas: copy ada di src/data/mading-posts.ts (madingConfig).

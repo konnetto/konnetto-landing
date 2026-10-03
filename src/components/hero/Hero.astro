@@ -37,16 +37,25 @@ import { tsuba } from '../../data/assets';
 
         <!-- Headline + lead sebagai bubble "terkirim" (rata kanan) -->
         <div class="flex flex-col items-end gap-2 wide:mt-2.5 wide:gap-2.5">
-          <div class="hero-headline flex w-full flex-col gap-2 rounded-[30px_30px_8px_30px] bg-primary px-[22px] pt-6 pb-3 shadow-[5px_5px_0_var(--tertiary)] wide:rounded-[48px_48px_10px_48px] wide:shadow-[8px_8px_0_var(--tertiary)] wide:px-[clamp(32px,3.6vw,52px)] wide:pt-11 wide:pb-[22px]">
-            <h1 id="hero-heading" class="hero-h1 font-display text-[34px] leading-10 font-bold tracking-[-0.02em] text-on-primary wide:text-[clamp(52px,calc(5.88vw-12.7px),72px)] wide:leading-[1.08]">
-              {hero.headlineLines.map((line) => (<>{line}<br /></>))}
+          <!--
+            Mobile (artboard Versi B mobile): bubble selebar isinya (maks. 86%), huruf 22-28px.
+            Desktop: selebar kolom chat. <br class="br-mobile"> dan <br class="br-desktop"> mengatur
+            pemenggalan baris per layar (lihat hero.headlineParts).
+          -->
+          <div class="hero-headline flex max-w-[86%] flex-col gap-1.5 rounded-[24px_24px_6px_24px] bg-primary pt-4 pr-4 pb-2.5 pl-[18px] shadow-[3px_3px_0_var(--tertiary)] wide:w-full wide:max-w-none wide:gap-2 wide:rounded-[48px_48px_10px_48px] wide:shadow-[8px_8px_0_var(--tertiary)] wide:px-[clamp(32px,3.6vw,52px)] wide:pt-11 wide:pb-[22px]">
+            <h1 id="hero-heading" class="hero-h1 font-display text-[clamp(22px,6.2vw,28px)] leading-[1.05] font-bold tracking-[-0.025em] text-on-primary wide:text-[clamp(52px,calc(5.88vw-12.7px),72px)] wide:leading-[1.08] wide:tracking-[-0.02em]">
+              {hero.headlineParts[0]}<br class="br-mobile" /> <span class="hl-nowrap-mobile">{hero.headlineParts[1]}<br class="br-desktop" />{hero.headlineParts[2]}</span><br />{' '}
               <span class="whitespace-nowrap text-tertiary">{hero.headlineHighlight}</span>
             </h1>
             <span class="inline-flex items-center gap-1.5 self-end text-caption text-[#E6DEFF]">{hero.sentAt}<ReadTicks /></span>
           </div>
-          <div class="hero-lead flex max-w-[92%] items-end gap-2.5 rounded-[20px_20px_6px_20px] bg-primary px-3.5 pt-2.5 pb-2 wide:max-w-[620px] wide:gap-3.5 wide:rounded-[22px_22px_6px_22px] wide:px-[22px] wide:pt-3.5 wide:pb-3">
-            <p class="hero-lead-text m-0 text-body font-medium text-on-primary wide:text-[19px] wide:leading-7">{hero.lead}</p>
-            <span class="inline-flex shrink-0 items-center gap-1.5 text-caption text-[#E6DEFF]">{hero.sentAt}<ReadTicks /></span>
+          <!--
+            Mobile: jam "terkirim" mengapung di ujung baris terakhir seperti WhatsApp (teks inline +
+            float). Desktop: teks dan jam berdampingan (flex).
+          -->
+          <div class="hero-lead block max-w-[88%] rounded-[20px_20px_6px_20px] bg-primary pt-2.5 pr-3 pb-[9px] pl-3.5 wide:flex wide:max-w-[620px] wide:items-end wide:gap-3.5 wide:rounded-[22px_22px_6px_22px] wide:px-[22px] wide:pt-3.5 wide:pb-3">
+            <p class="hero-lead-text m-0 inline text-[15px] leading-[22px] font-medium text-on-primary wide:block wide:text-[19px] wide:leading-7">{hero.lead}</p>
+            <span class="float-right mt-[7px] ml-2.5 inline-flex shrink-0 items-center gap-1.5 text-caption text-[#E6DEFF] wide:float-none wide:m-0">{hero.sentAt}<ReadTicks /></span>
           </div>
 
           <!-- CTA. Mobile: tombol penuh lalu link. Desktop: link lalu tombol, rata kanan. -->
@@ -100,6 +109,36 @@ import { tsuba } from '../../data/assets';
   }
   .hero-link:hover {
     color: var(--accent-pink);
+  }
+
+  /* Pemenggalan baris headline per layar (lihat hero.headlineParts) */
+  @media (max-width: 1099px) {
+    .br-desktop {
+      display: none;
+    }
+    .hl-nowrap-mobile {
+      white-space: nowrap;
+    }
+    /* Link creator di mobile (artboard): pink, tanpa garis bawah kecuali saat ditekan */
+    .hero-link {
+      color: var(--tertiary);
+      text-decoration: none;
+      font: 600 16px/22px var(--font-sans);
+      padding-block: 11px;
+      /* Kalau tidak muat satu baris (layar ~390px ke bawah): rata tengah dan seimbang */
+      text-align: center;
+      text-wrap: balance;
+    }
+    .hero-link:active {
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 4px;
+    }
+  }
+  @media (min-width: 1100px) {
+    .br-mobile {
+      display: none;
+    }
   }
 
   /*
@@ -188,21 +227,7 @@ import { tsuba } from '../../data/assets';
       padding-top: 8px;
       padding-bottom: 12px;
     }
-    .hero-headline {
-      gap: 4px;
-      padding: 16px 18px 8px;
-    }
-    .hero-h1 {
-      font-size: 28px;
-      line-height: 33px;
-    }
-    .hero-lead {
-      padding: 8px 12px 6px 14px;
-    }
-    .hero-lead-text {
-      font-size: 15px;
-      line-height: 21px;
-    }
+    /* Bubble headline dan lead sudah ringkas di desain mobile; cukup rapatkan tombol dan link. */
     .hero-ctas .kn-btn {
       --h: 48px;
       font-size: 16px;
