@@ -1,0 +1,884 @@
+---
+/**
+ * /karier/[slug]: detail satu lowongan. Satu halaman per lowongan di src/data/careers.ts
+ * (getStaticPaths). Tampilan dari artboard KarierLogo/KarierIlustrator (desktop 1440) dan
+ * versi Mobile-nya (390).
+ *
+ * Urutan section:
+ *  1. Judul + chip + tombol "Kirim portofolio" (lompat ke section terakhir)
+ *  2. Yang bakal kamu kerjakan · Detail proyek · Nilai plus
+ *     Mobile: bertumpuk dengan urutan itu. Desktop: "Yang bakal kamu kerjakan" dan "Nilai plus"
+ *     berdampingan di pita gelap, "Detail proyek" di bawahnya (grid area, satu DOM).
+ *  3. Cara kerjanya (StepLog, sama dengan Roadmap di beranda)
+ *  4. Biar jelas dari awal (bubble admin)
+ *  5. Kirim portofolio: tanpa form. Tombol mailto (subject sesuai lowongan) dan tombol salin alamat
+ *     email (Clipboard API + fallback execCommand; label "tersalin!" selama 2 detik).
+ *
+ * Umami: career-email-click (tombol Kirim email) dan career-copy-email (tombol salin),
+ * keduanya dengan data job = slug.
+ */
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/sections/Footer.astro';
+import Avatar from '../../components/Avatar.astro';
+import StepLog from '../../components/StepLog.astro';
+import AdminThread from '../../components/careers/AdminThread.astro';
+import JobChips from '../../components/careers/JobChips.astro';
+import { nav } from '../../data/content';
+import { getUser } from '../../data/users';
+import { getSticker, stickerAlt } from '../../data/stickers';
+import { careersEmail, jobMailto, jobPage, jobs, type Job } from '../../data/careers';
+import { EVENTS } from '../../lib/analytics';
+
+export const getStaticPaths = (() => jobs.map((job) => ({ params: { slug: job.slug }, props: { job } }))) satisfies GetStaticPaths;
+
+interface Props {
+  job: Job;
+}
+
+const { job } = Astro.props;
+const page = jobPage;
+
+// Link navbar menunjuk ke section di halaman utama.
+const links = nav.links.map((link) => ({ ...link, href: `/${link.href}` }));
+const cta = { ...nav.cta, href: `/${nav.cta.href}` };
+
+const admin = getUser('admin');
+const gas = getSticker('gas');
+const steps = page.steps.map((step, index) => ({ ...step, now: index === 0 }));
+const detailRows = [
+  { label: page.detailLabels.timeline, value: job.details.timeline },
+  { label: page.detailLabels.budget, value: job.details.budget },
+  { label: page.detailLabels.usageRights, value: job.details.usageRights },
+];
+---
+
+<BaseLayout title={`${job.title} | Karier Konnetto`} description={job.metaDescription}>
+  <Navbar links={links} cta={cta} homeHref="/" />
+
+  <main id="konten">
+    <!-- 1 · Judul lowongan -->
+    <section aria-labelledby="job-heading" class="j-head grain">
+      <div class="j-col j-head__col">
+        <a class="j-back" href="/karier">{page.backLink}</a>
+        <div class="j-head__grid">
+          <div class="j-head__main">
+            <h1 id="job-heading" class="j-h1">
+              {
+                job.titleLines.slice(0, -1).map((line) => (
+                  <>
+                    {line}
+                    <br class="br-desktop" />{' '}
+                  </>
+                ))
+              }
+              <span class="j-h1__accent">{job.titleLines.at(-1)}</span>
+            </h1>
+            <JobChips tags={job.tags} bleed={20} />
+          </div>
+          <a class="j-btn j-btn--paper j-head__cta" href="#kirim">{page.applyCta}</a>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 · Pekerjaan, detail proyek, nilai plus -->
+    <div class="j-col j-about">
+      <div class="j-band" aria-hidden="true"></div>
+
+      <section aria-labelledby="tasks-heading" class="j-sec j-tasks">
+        <h2 id="tasks-heading" class="j-h2 j-h2--sm">{page.sections.tasks}</h2>
+        <ul class="j-bubbles">
+          {job.tasks.map((task) => <li>{task}</li>)}
+        </ul>
+      </section>
+
+      <section aria-labelledby="plus-heading" class="j-sec j-plus-sec">
+        <div class="j-plus">
+          <h2 id="plus-heading" class="j-plus__title">{page.sections.niceToHave}</h2>
+          <ul>
+            {
+              job.niceToHave.map((item) => (
+                <li>
+                  <svg viewBox="0 0 16 16" aria-hidden="true">
+                    <path d="M3 8.5l3.2 3.2L13 4.8" />
+                  </svg>
+                  {item}
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </section>
+
+      <section aria-labelledby="details-heading" class="j-sec j-details">
+        <h2 id="details-heading" class="j-h2">{page.sections.details}</h2>
+        <dl class="j-dl">
+          <div>
+            <dt>{page.detailLabels.deliverables}</dt>
+            <dd>
+              <ul class="j-dl-list">
+                {job.details.deliverables.map((item) => <li>{item}</li>)}
+              </ul>
+            </dd>
+          </div>
+          {
+            detailRows.map((row) => (
+              <div>
+                <dt>{row.label}</dt>
+                <dd>{row.value}</dd>
+              </div>
+            ))
+          }
+        </dl>
+      </section>
+    </div>
+
+    <!-- 3 · Cara kerjanya -->
+    <section aria-labelledby="steps-heading" class="j-col j-sec j-steps">
+      <div class="j-steps__intro">
+        <h2 id="steps-heading" class="j-h2">{page.sections.steps}</h2>
+        <p class="j-lead">{page.stepsIntro}</p>
+      </div>
+      <StepLog label={page.sections.steps} steps={steps} />
+    </section>
+
+    <!-- 4 · Biar jelas dari awal -->
+    <section aria-labelledby="promises-heading" class="j-promises">
+      <div class="j-col j-sec j-promises__col">
+        <h2 id="promises-heading" class="j-h2 j-promises__title">{page.sections.promises}</h2>
+        <AdminThread class="j-promises__thread" messages={page.promises} />
+      </div>
+    </section>
+
+    <!-- 5 · Kirim portofolio (tanpa form) -->
+    <section id="kirim" aria-labelledby="apply-heading" class="j-col j-sec j-apply">
+      <div class="j-mail">
+        <div class="j-mail__main">
+          <h2 id="apply-heading" class="j-h2">{page.sections.apply}</h2>
+          <div class="kn-msg j-mail__msg">
+            <Avatar class="j-mail__av" user={admin} size={40} />
+            <div class="kn-bubble j-mail__bubble">
+              <span>{page.promiseEmail.before} {careersEmail} {page.promiseEmail.after}</span>
+              <span class="j-mail__ts">{page.promiseEmail.time}</span>
+            </div>
+          </div>
+          <p class="j-email">{careersEmail}</p>
+          <div class="j-btns">
+            <a class="j-btn j-btn--paper" href={jobMailto(job)} data-umami-event={EVENTS.careerEmailClick} data-umami-event-job={job.slug}>
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="3" y="5" width="18" height="14" rx="3" />
+                <path d="m4 7 8 6 8-6" />
+              </svg>
+              {page.apply.sendLabel}
+            </a>
+            <button
+              type="button"
+              class="j-btn j-btn--ghost"
+              data-copy-email={careersEmail}
+              data-job={job.slug}
+              data-label={page.apply.copyLabel}
+              data-label-done={page.apply.copiedLabel}
+              data-label-failed={page.apply.copyFailedLabel}
+            >
+              <svg viewBox="0 0 24 24" aria-hidden="true">
+                <rect x="8" y="8" width="12" height="12" rx="3" />
+                <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+              </svg>
+              <span data-copy-label aria-live="polite">{page.apply.copyLabel}</span>
+            </button>
+          </div>
+          <p class="j-small">{page.apply.note}</p>
+        </div>
+
+        <div class="j-mail__side">
+          <img class="j-gas" src={gas.url} alt={stickerAlt(gas)} width="96" height="96" loading="lazy" decoding="async" />
+          <span class="j-mail__subtitle">{page.apply.suggestionsTitle}</span>
+          <ul class="j-isi">
+            {
+              page.apply.suggestions.map((item) => (
+                <li>
+                  {item.label}
+                  {item.hint.startsWith('(') ? ' ' : <br />}
+                  <span>{item.hint}</span>
+                </li>
+              ))
+            }
+          </ul>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<script>
+  import { EVENTS, track } from '../../lib/analytics';
+
+  // Tombol "Salin alamat email": Clipboard API, dengan fallback execCommand untuk browser lama
+  // atau halaman non-HTTPS. Label berubah 2 detik, lalu kembali.
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-copy-email]')) {
+    const label = button.querySelector<HTMLElement>('[data-copy-label]');
+    const text = button.dataset.copyEmail ?? '';
+    let timer = 0;
+
+    const show = (ok: boolean) => {
+      if (!label) return;
+      label.textContent = (ok ? button.dataset.labelDone : button.dataset.labelFailed) ?? '';
+      button.classList.toggle('is-done', ok);
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        label.textContent = button.dataset.label ?? '';
+        button.classList.remove('is-done');
+      }, 2000);
+    };
+
+    const fallbackCopy = () => {
+      let ok = false;
+      try {
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.setAttribute('readonly', '');
+        area.style.position = 'fixed';
+        area.style.opacity = '0';
+        document.body.appendChild(area);
+        area.select();
+        ok = document.execCommand('copy');
+        area.remove();
+      } catch {
+        ok = false;
+      }
+      return ok;
+    };
+
+    button.addEventListener('click', async () => {
+      let ok = false;
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(text);
+          ok = true;
+        } else {
+          ok = fallbackCopy();
+        }
+      } catch {
+        ok = fallbackCopy();
+      }
+      show(ok);
+      track(EVENTS.careerCopyEmail, { job: button.dataset.job ?? '', ok });
+    });
+  }
+</script>
+
+<style>
+  /* ---------- Kerangka ---------- */
+  .j-col {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: calc(1280px + 2 * 80px);
+    margin: 0 auto;
+    padding-inline: 20px;
+  }
+  .j-sec {
+    padding-block: 32px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .j-h2 {
+    margin: 0;
+    font: 700 26px/32px var(--font-display);
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .j-lead {
+    margin: 0;
+    font: 400 18px/28px var(--font-sans);
+    color: var(--ink-muted);
+  }
+  .br-desktop {
+    display: none;
+  }
+
+  /* ---------- 1 · Judul ---------- */
+  .j-head {
+    padding: 8px 0 32px;
+  }
+  .j-head__col {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .j-back {
+    align-self: flex-start;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 44px;
+    font: 600 16px/22px var(--font-sans);
+    color: var(--ink-muted);
+    text-decoration: none;
+  }
+  .j-back:hover,
+  .j-back:focus-visible {
+    color: var(--ink);
+  }
+  .j-back:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 2px;
+    border-radius: 8px;
+  }
+  .j-head__grid {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .j-head__main {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    min-width: 0;
+  }
+  .j-h1 {
+    margin: 0;
+    font: 700 clamp(28px, 8.4vw, 36px) / 1.08 var(--font-display);
+    letter-spacing: -0.025em;
+    color: var(--ink);
+  }
+  .j-h1__accent {
+    color: var(--tertiary);
+  }
+
+  /* Tombol (artboard k-btn): mobile selebar layar */
+  .j-btn {
+    box-sizing: border-box;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 56px;
+    padding: 0 28px;
+    border-radius: var(--radius-pill);
+    border: 1.5px solid transparent;
+    font: 700 17px/22px var(--font-sans);
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+    -webkit-appearance: none;
+    appearance: none;
+    transition:
+      background-color 0.15s ease,
+      color 0.15s ease,
+      transform 0.15s ease;
+  }
+  .j-btn svg {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .j-btn:active {
+    transform: translateY(1px);
+  }
+  .j-btn:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 3px;
+  }
+  .j-btn--paper {
+    background: var(--paper);
+    color: #16121f;
+  }
+  .j-btn--paper:hover {
+    background: #fff;
+  }
+  .j-btn--ghost {
+    background: transparent;
+    color: var(--ink);
+    border-color: rgb(249 249 249 / 0.6);
+  }
+  .j-btn--ghost:hover {
+    background: rgb(249 249 249 / 0.12);
+  }
+  .j-btn--ghost.is-done {
+    background: var(--tertiary);
+    border-color: var(--tertiary);
+    color: var(--on-tertiary);
+  }
+
+  /* ---------- 2 · Pekerjaan, detail, nilai plus ---------- */
+  .j-about {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+  }
+  .j-band {
+    display: none;
+  }
+  .j-tasks {
+    order: 1;
+  }
+  .j-details {
+    order: 2;
+  }
+  .j-plus-sec {
+    order: 3;
+    padding-top: 0;
+  }
+
+  .j-bubbles {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .j-bubbles li {
+    align-self: flex-start;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    box-sizing: border-box;
+    padding: 12px 16px;
+    border-radius: 22px 22px 22px 6px;
+    background: var(--surface-raised);
+    font: 600 16px/24px var(--font-sans);
+    color: var(--ink);
+  }
+  .j-bubbles li::before {
+    content: '';
+    flex-shrink: 0;
+    width: 8px;
+    height: 8px;
+    margin-top: 0.62em;
+    border-radius: 50%;
+    background: var(--tertiary);
+  }
+
+  .j-plus {
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 22px 20px;
+    border-radius: 30px 30px 8px 30px;
+    background: var(--tertiary);
+    color: var(--on-tertiary);
+    box-shadow: 4px 4px 0 var(--primary);
+  }
+  .j-plus__title {
+    margin: 0;
+    font: 700 20px/26px var(--font-display);
+    letter-spacing: -0.01em;
+  }
+  .j-plus ul {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .j-plus li {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    font: 600 16px/24px var(--font-sans);
+  }
+  .j-plus li svg {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    margin-top: 3px;
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 2.6;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  .j-dl {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    border-top: 1px solid rgb(255 255 255 / 0.08);
+  }
+  .j-dl > div {
+    display: grid;
+    grid-template-columns: 1fr;
+    row-gap: 4px;
+    padding: 16px 0;
+    border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  }
+  .j-dl dt {
+    font: 700 16px/26px var(--font-sans);
+    color: var(--accent);
+  }
+  .j-dl dd {
+    margin: 0;
+    font: 500 16px/24px var(--font-sans);
+    color: var(--ink);
+  }
+  .j-dl-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .j-dl-list li {
+    display: flex;
+    gap: 10px;
+  }
+  .j-dl-list li::before {
+    content: '';
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    margin-top: 9px;
+    border-radius: 50%;
+    background: var(--tertiary);
+  }
+
+  /* ---------- 4 · Biar jelas dari awal ---------- */
+  .j-promises__col {
+    padding-inline: 16px;
+  }
+  .j-promises__title {
+    padding: 0 4px;
+  }
+
+  /* ---------- 5 · Kirim portofolio ---------- */
+  .j-apply {
+    padding-inline: 16px;
+    padding-top: 48px;
+  }
+  .j-mail {
+    position: relative;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    padding: 28px 18px 26px;
+    border-radius: 32px;
+    background: var(--primary);
+    color: var(--ink);
+  }
+  /* Mobile: kedua kolom "dilebur" supaya urutannya bisa diatur (catatan kecil paling bawah). */
+  .j-mail__main,
+  .j-mail__side {
+    display: contents;
+  }
+  .j-small {
+    order: 99;
+    margin: 0;
+    font: 500 15px/22px var(--font-sans);
+    color: #e6deff;
+  }
+  .j-mail__msg {
+    max-width: none;
+    gap: 8px;
+    align-items: flex-end;
+  }
+  .j-mail__av {
+    width: 28px;
+    height: 28px;
+    object-position: 50% 38%;
+    background: var(--primary);
+  }
+  .j-mail__bubble {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 10px 12px 8px 14px;
+    border-radius: 18px 18px 18px 6px;
+    background: rgb(15 11 26 / 0.35);
+    font: 500 16px/24px var(--font-sans);
+    color: var(--ink);
+  }
+  .j-mail__ts {
+    align-self: flex-end;
+    font: 500 11px/14px var(--font-sans);
+    color: #e6deff;
+    white-space: nowrap;
+  }
+  /* Alamat email besar: selalu utuh dalam satu baris, mudah dipilih */
+  .j-email {
+    display: block;
+    margin: 0;
+    font: 700 clamp(18px, 6.2vw, 30px) / 1.1 var(--font-display);
+    letter-spacing: -0.02em;
+    color: var(--ink);
+    white-space: nowrap;
+    -webkit-user-select: all;
+    user-select: all;
+  }
+  .j-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .j-gas {
+    position: absolute;
+    right: 12px;
+    top: -34px;
+    display: block;
+    width: 72px;
+    height: 72px;
+    object-fit: contain;
+    transform: rotate(8deg);
+    filter: drop-shadow(0 6px 14px rgb(6 3 14 / 0.45));
+    pointer-events: none;
+  }
+  .j-mail__subtitle {
+    padding-top: 6px;
+    font: 700 16px/22px var(--font-sans);
+  }
+  .j-isi {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .j-isi li {
+    align-self: flex-start;
+    box-sizing: border-box;
+    padding: 10px 16px;
+    border-radius: 20px 20px 20px 6px;
+    background: rgb(249 249 249 / 0.14);
+    font: 600 16px/23px var(--font-sans);
+  }
+  .j-isi li span {
+    font-weight: 500;
+    color: #e6deff;
+  }
+
+  /* ---------- Desktop (artboard 1440) ---------- */
+  @media (min-width: 1100px) {
+    .j-col {
+      padding-inline: 80px;
+    }
+    .j-sec {
+      padding-block: 96px;
+    }
+    .j-h2 {
+      font-size: 48px;
+      line-height: 54px;
+    }
+    .j-h2--sm {
+      font-size: 40px;
+      line-height: 46px;
+    }
+    .br-desktop {
+      display: inline;
+    }
+
+    .j-head {
+      padding: 112px 0 80px;
+    }
+    .j-head__col {
+      gap: 28px;
+    }
+    .j-head__grid {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: 48px;
+      align-items: end;
+    }
+    .j-head__main {
+      grid-column: span 8;
+      gap: 22px;
+    }
+    .j-h1 {
+      font-size: 60px;
+      line-height: 1.05;
+    }
+    .j-head__cta {
+      grid-column: 10 / span 3;
+      justify-self: end;
+    }
+    .j-btn {
+      width: auto;
+    }
+
+    /* Pekerjaan + nilai plus berdampingan di pita gelap; detail proyek di bawahnya */
+    .j-about {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: 48px;
+      align-items: start;
+    }
+    .j-band {
+      display: block;
+      grid-row: 1;
+      grid-column: 1 / -1;
+      align-self: stretch;
+      z-index: -1;
+      background: var(--surface-sunken);
+      /* Selebar layar tanpa menambah lebar halaman */
+      box-shadow: 0 0 0 100vmax var(--surface-sunken);
+      clip-path: inset(0 -100vmax);
+    }
+    /* Kolom eksplisit: pita (.j-band) menempati seluruh baris 1, jadi penempatan otomatis tidak bisa dipakai */
+    .j-tasks {
+      grid-row: 1;
+      grid-column: 1 / span 6;
+      gap: 24px;
+    }
+    .j-plus-sec {
+      grid-row: 1;
+      grid-column: 8 / span 5;
+      padding-top: 104px;
+    }
+    .j-plus {
+      padding: 32px;
+    }
+    .j-details {
+      grid-row: 2;
+      grid-column: 1 / -1;
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: 48px;
+      align-items: start;
+    }
+    .j-details .j-h2 {
+      grid-column: span 5;
+    }
+    .j-dl {
+      grid-column: 7 / span 6;
+    }
+    .j-dl > div {
+      grid-template-columns: 180px minmax(0, 1fr);
+      column-gap: 24px;
+      padding: 18px 4px;
+    }
+    .j-dl dd {
+      font-size: 17px;
+      line-height: 26px;
+    }
+    .j-dl-list li::before {
+      margin-top: 10px;
+    }
+    .j-bubbles li {
+      padding: 16px 22px;
+      font-size: 19px;
+      line-height: 28px;
+    }
+
+    .j-steps {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: 48px;
+      align-items: start;
+    }
+    .j-steps__intro {
+      grid-column: span 5;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+    .j-steps > :global(.rm-log) {
+      grid-column: 7 / span 6;
+    }
+
+    .j-promises {
+      background: var(--surface-sunken);
+    }
+    .j-promises__col {
+      padding-inline: 80px;
+      align-items: center;
+      gap: 44px;
+    }
+    .j-promises__title {
+      padding: 0;
+      text-align: center;
+    }
+    :global(.j-promises__thread) {
+      width: 760px;
+      max-width: 100%;
+    }
+
+    .j-apply {
+      padding-inline: 80px;
+      padding-top: 96px;
+    }
+    .j-mail {
+      display: grid;
+      grid-template-columns: repeat(12, minmax(0, 1fr));
+      column-gap: 48px;
+      align-items: start;
+      padding: 64px;
+      border-radius: 40px;
+    }
+    .j-mail__main {
+      grid-column: span 7;
+      display: flex;
+      flex-direction: column;
+      gap: 28px;
+      min-width: 0;
+    }
+    .j-mail__side {
+      grid-column: 8 / span 5;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding-top: 6px;
+    }
+    .j-small {
+      order: 0;
+    }
+    .j-mail__msg {
+      gap: 12px;
+    }
+    .j-mail__av {
+      width: 40px;
+      height: 40px;
+    }
+    .j-mail__bubble {
+      gap: 12px;
+      padding: 12px 16px 10px 20px;
+      border-radius: 20px 20px 20px 6px;
+      font-size: 18px;
+      line-height: 27px;
+    }
+    .j-mail__ts {
+      font-size: 12px;
+      line-height: 16px;
+    }
+    .j-email {
+      font-size: clamp(32px, 3.05vw, 44px);
+    }
+    .j-btns {
+      flex-direction: row;
+    }
+    .j-gas {
+      right: -20px;
+      top: -44px;
+      width: 96px;
+      height: 96px;
+    }
+    .j-mail__subtitle {
+      padding-top: 0;
+      font-size: 18px;
+      line-height: 24px;
+    }
+    .j-isi li {
+      font-size: 17px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .j-btn {
+      transition: none;
+    }
+  }
+</style>

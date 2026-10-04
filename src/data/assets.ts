@@ -30,7 +30,7 @@ export const tsuba = {
     url: asset('tsuba/tsuba-avatar.webp'),
     width: 192,
     height: 192,
-    alt: 'Tsuba, maskot Konnetto',
+    alt: 'maskot Konnetto',
   },
   /**
    * Tsuba mengintip dari balik kolom mading di hero (desktop). Tepi kanan gambar = garis potongan
@@ -40,13 +40,30 @@ export const tsuba = {
     url: asset('tsuba/tsuba-peek-side.webp'),
     width: 435,
     height: 880,
-    alt: 'Tsuba, maskot Konnetto, mengintip dari balik mading',
+    alt: 'maskot Konnetto mengintip dari balik mading',
   },
   /** Tsuba mengintip di balik wordmark footer. */
   peek: {
     url: asset('tsuba/tsuba-peek.webp'),
     width: 720,
     height: 321,
-    alt: 'Tsuba, maskot Konnetto',
+    alt: 'maskot Konnetto',
   },
+} satisfies Record<string, ImageAsset>;
+
+/** Ilustrasi halaman. Sumber di brand/illustrations/ (dipotong, lebar 2x ukuran tampil). */
+export const illustrations = {
+  /** Halaman 404: maskot kebingungan memegang peta terbalik. Tampil 300px (mobile 200px tinggi). */
+  lost404: {
+    url: asset('illustrations/404-lost.webp'),
+    width: 600,
+    height: 745,
+    alt: 'Maskot Konnetto kebingungan memegang peta terbalik',
+  },
+} satisfies Record<string, ImageAsset>;
+
+/** Ikon kecil. Sumber di brand/icons/ (dipotong, dijadikan persegi, 3x ukuran tampil). */
+export const icons = {
+  /** Pin di label "masuk mading" (chat hero). Dekoratif: alt kosong saat dipakai. */
+  pin: { url: asset('icons/pin.webp'), width: 54, height: 54, alt: '' },
 } satisfies Record<string, ImageAsset>;

@@ -414,13 +414,34 @@ export const footer = {
     { label: 'Untuk fans', href: '/' + a('fans') },
     { label: 'Untuk creator', href: '/' + a('creator') },
     { label: 'Tentang', href: '/' + a('about') },
+    { label: 'Karier', href: '/karier' },
     { label: 'Kebijakan privasi', href: '/privasi' },
     { label: 'Syarat dan ketentuan', href: '/syarat' },
   ] satisfies Link[],
   legal: [
-    'ilustrasi Tsuba di halaman ini masih konsep sementara. versi final sedang kami siapkan bareng ilustrator lokal.',
+    'ilustrasi maskot di halaman ini masih konsep sementara. versi final sedang kami siapkan bareng ilustrator lokal.',
     '© 2026 Konnetto',
   ],
   kana: 'コネット',
   wordmark: 'konnetto',
+};
+
+// ---------------------------------------------------------------------------
+// Halaman 404 (src/pages/404.astro)
+// ---------------------------------------------------------------------------
+
+export const notFound = {
+  /** Pemisah "|" mengikuti title halaman lain. */
+  title: 'Halaman nggak ketemu | Konnetto',
+  description: 'Halaman yang kamu cari nggak ada di Konnetto.',
+  /** Pesan terkirim dari pengunjung (rata kanan, tanpa avatar). */
+  visitor: { text: 'lho, halamannya mana?', time: '21.40' },
+  /** Balasan dari akun admin. */
+  replies: [
+    { text: 'waduh, halaman ini nggak ketemu', time: '21.41' },
+    { text: 'mungkin link-nya salah ketik, atau halamannya udah pindah.', time: '21.41' },
+  ],
+  meta: '404 · halaman nggak ketemu',
+  home: { label: 'Balik ke beranda', href: '/' } satisfies Link,
+  signup: { label: 'Gabung komunitas awal', href: '/' + a('signup') } satisfies Link,
 };

@@ -1,0 +1,97 @@
+---
+/**
+ * Rangkaian bubble dari akun admin (avatar + nama + bubble), untuk halaman karier:
+ * sapaan di /karier dan "Biar jelas dari awal" di halaman detail.
+ * Mobile: avatar 32px, teks 16px. 768px+: avatar 48px, teks 18px (artboard).
+ */
+import Avatar from '../Avatar.astro';
+import RichText from '../RichText.astro';
+import { getUser } from '../../data/users';
+import type { RichText as RichTextValue } from '../../data/content';
+
+interface Props {
+  messages: { text: RichTextValue; time: string }[];
+  /** Avatar admin di layar pertama: dimuat langsung. */
+  eager?: boolean;
+  class?: string;
+}
+
+// rest: atribut scope (data-astro-cid-*) dari halaman pemakai, supaya class-nya (mis. animasi) berlaku.
+const { messages, eager = false, class: className, ...rest } = Astro.props;
+const admin = getUser('admin');
+---
+
+<div class:list={['kn-msg', 'at', className]} {...rest}>
+  <Avatar class="at-av" user={admin} size={48} loading={eager ? 'eager' : 'lazy'} />
+  <div class="kn-msg__body at-body">
+    <span class="at-name">{admin.username}</span>
+    {
+      messages.map((message) => (
+        <div class="kn-bubble kn-bubble--other at-bubble">
+          <span>
+            <RichText text={message.text} />
+          </span>
+          <span class="at-ts">{message.time}</span>
+        </div>
+      ))
+    }
+  </div>
+</div>
+
+<style>
+  .at {
+    max-width: none;
+    gap: 10px;
+    align-items: flex-end;
+  }
+  .at-av {
+    width: 32px;
+    height: 32px;
+    object-position: 50% 38%;
+    background: var(--primary);
+  }
+  .at-body {
+    gap: 8px;
+    min-width: 0;
+  }
+  .at-name {
+    padding: 0 6px;
+    font: 700 13px/18px var(--font-sans);
+    color: var(--accent);
+  }
+  .at-bubble {
+    align-self: flex-start;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 10px 12px 8px 14px;
+    font-size: 16px;
+    line-height: 24px;
+  }
+  .at-ts {
+    align-self: flex-end;
+    font: 500 11px/14px var(--font-sans);
+    color: #cfc8e0;
+    white-space: nowrap;
+  }
+
+  @media (min-width: 768px) {
+    .at {
+      gap: 14px;
+    }
+    .at-av {
+      width: 48px;
+      height: 48px;
+    }
+    .at-bubble {
+      gap: 14px;
+      padding: 14px 18px 12px 22px;
+      font-size: 18px;
+      line-height: 28px;
+    }
+    .at-ts {
+      font-size: 12px;
+      line-height: 16px;
+    }
+  }
+</style>

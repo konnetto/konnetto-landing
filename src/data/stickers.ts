@@ -7,7 +7,7 @@ import { asset } from './assets';
 
 export interface Sticker {
   id: string;
-  /** Teks di sticker, juga dipakai untuk alt text: "Sticker Tsuba: GAS". */
+  /** Teks di sticker, juga dipakai untuk alt text: "Sticker: GAS". */
   label: string;
   /** Nama reaksi gaya kode, tampil di popup "siapa yang bereaksi". */
   reactName: string;
@@ -50,7 +50,7 @@ export interface Reaction {
 }
 
 /** Alt text standar sticker. */
-export const stickerAlt = (sticker: Sticker) => `Sticker Tsuba: ${sticker.label}`;
+export const stickerAlt = (sticker: Sticker) => `Sticker: ${sticker.label}`;
 
 export function getSticker(id: StickerId): Sticker {
   const found = stickers.find((s) => s.id === id);

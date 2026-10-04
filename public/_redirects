@@ -1,0 +1,4 @@
+# Cloudflare Pages redirects (https://developers.cloudflare.com/pages/configuration/redirects/)
+# Halaman lowongan lama yang sudah tidak ada: arahkan ke daftar lowongan.
+/karier/graphic-designer   /karier   301
+/karier/graphic-designer/  /karier   301

@@ -16,7 +16,7 @@ import { getSticker, stickerAlt } from '../../data/stickers';
 import Reactions from './Reactions.astro';
 import Username from '../Username.astro';
 import Avatar from '../Avatar.astro';
-import { imageSrcset } from '../../data/assets';
+import { icons, imageSrcset } from '../../data/assets';
 
 interface Props {
   message: ChatMessage;
@@ -83,7 +83,7 @@ const user = getUser(message.userId);
                 <span class="chat-ts" data-slot="time">{time}</span>
               </div>
               <span class="chat-saved" data-slot="saved" hidden={!saved}>
-                <span class="emoji" aria-hidden="true">{chatConfig.savedEmoji}</span>{chatConfig.savedLabel}
+                <img class="chat-saved__pin" src={icons.pin.url} alt="" width="18" height="18" decoding="async" />{chatConfig.savedLabel}
               </span>
             </div>
           </div>
@@ -215,27 +215,49 @@ const user = getUser(message.userId);
     align-items: flex-end;
     gap: 10px;
   }
-  /* Label "📌 Masuk Mading" */
+  /* Label "masuk mading" dengan ikon pin */
   .chat-saved {
     display: inline-flex;
     align-items: center;
     gap: 4px;
     font: 600 12px/16px var(--font-sans);
-    color: rgb(245 180 207 / 0.8);
+    color: rgb(245 180 207 / 0.85); /* --tertiary, 85% */
   }
   .chat-saved[hidden] {
     display: none;
   }
-  .chat-saved .emoji {
-    font-size: 12px;
+  .chat-saved__pin {
+    flex-shrink: 0;
+    display: block;
+    width: 18px;
+    height: 18px;
   }
-  .chat-saved.is-new {
-    animation: chat-saved-in 0.4s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+  /* Saat label baru muncul (setelah kartu masuk mading): label naik pelan, pin "ditancap". */
+  @media (prefers-reduced-motion: no-preference) {
+    .chat-saved.is-new {
+      animation: chat-saved-in 0.4s cubic-bezier(0.2, 0.8, 0.3, 1) both;
+    }
+    .chat-saved.is-new .chat-saved__pin {
+      animation: chat-pin-in 0.2s cubic-bezier(0.3, 1.4, 0.5, 1) both;
+    }
   }
   @keyframes chat-saved-in {
     from {
       opacity: 0;
       transform: translateY(4px) scale(0.9);
+    }
+  }
+  @keyframes chat-pin-in {
+    0% {
+      opacity: 0;
+      transform: translateY(-6px) rotate(-12deg);
+    }
+    70% {
+      opacity: 1;
+      transform: translateY(1px) rotate(2deg);
+    }
+    100% {
+      transform: none;
     }
   }
 

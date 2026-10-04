@@ -14,6 +14,10 @@ export const EVENTS = {
   formSubmitFans: 'form-submit-fans',
   formSubmitCreator: 'form-submit-creator',
   reactionClick: 'reaction-click',
+  /** Halaman karier. Data tambahan: { job: <slug> }. */
+  careerJobClick: 'career-job-click',
+  careerEmailClick: 'career-email-click',
+  careerCopyEmail: 'career-copy-email',
 } as const;
 
 export type EventName = (typeof EVENTS)[keyof typeof EVENTS];

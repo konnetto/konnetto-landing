@@ -1,33 +1,228 @@
 ---
 /**
- * Halaman 404. Cloudflare Pages otomatis menampilkan dist/404.html untuk alamat yang tidak ada.
- * Copy belum ada di artboard; ini usulan (silakan disesuaikan).
+ * Halaman 404, bergaya chat seperti hero. Cloudflare Pages otomatis menampilkan dist/404.html
+ * (dengan status HTTP 404) untuk semua alamat yang tidak ada. Copy: notFound di content.ts.
+ *
+ * Desktop (768px+): ilustrasi kiri (300px), percakapan + tombol kanan, sejajar tengah.
+ * Mobile: ilustrasi (200px) di atas, lalu percakapan, lalu tombol selebar layar; muat satu layar.
+ * Animasi: pesan pengunjung, lalu dua balasan admin, lalu tombol, jeda 400ms (pop seperti hero).
+ * Reduced motion: semua langsung tampil.
+ *
+ * noindex (BaseLayout), dan @astrojs/sitemap tidak memasukkan 404 ke sitemap.
  */
 import BaseLayout from '../layouts/BaseLayout.astro';
 import Navbar from '../components/Navbar.astro';
 import Footer from '../components/sections/Footer.astro';
-import { ANCHORS, nav } from '../data/content';
-import { getSticker, stickerAlt } from '../data/stickers';
+import ReadTicks from '../components/hero/ReadTicks.astro';
+import AdminThread from '../components/careers/AdminThread.astro';
+import { nav, notFound } from '../data/content';
+import { illustrations } from '../data/assets';
 
 // Link navbar menunjuk ke section di halaman utama.
 const links = nav.links.map((link) => ({ ...link, href: `/${link.href}` }));
 const cta = { ...nav.cta, href: `/${nav.cta.href}` };
-const sticker = getSticker('wkwkwk');
+const art = illustrations.lost404;
 ---
 
-<BaseLayout title="Halaman tidak ditemukan | Konnetto" description="Halaman yang kamu cari tidak ada di Konnetto." noindex>
+<BaseLayout title={notFound.title} description={notFound.description} noindex>
   <Navbar links={links} cta={cta} homeHref="/" />
 
-  <main id="konten" class="container-page flex min-h-[70dvh] max-w-3xl flex-col items-start justify-center gap-6 pt-28 pb-20">
-    <img src={sticker.url} alt={stickerAlt(sticker)} width="140" height="140" class="size-[120px] -rotate-6 md:size-[140px]" />
-    <p class="m-0 font-display text-label tracking-[0.08em] text-accent-pink uppercase">Error 404</p>
-    <h1 class="heading-section">Waduh, halamannya nggak ketemu.</h1>
-    <p class="lead-section max-w-xl">Mungkin link-nya salah ketik, atau halamannya sudah pindah. Yuk balik ke beranda.</p>
-    <div class="flex flex-wrap gap-3">
-      <a class="kn-btn kn-btn--primary kn-btn--lg" href="/">Balik ke beranda</a>
-      <a class="kn-btn kn-btn--outline kn-btn--lg" href={`/#${ANCHORS.signup}`}>Gabung komunitas awal</a>
+  <main id="konten" class="nf grain">
+    <div class="nf-wrap">
+      <img class="nf-art" src={art.url} alt={art.alt} width={art.width} height={art.height} decoding="async" fetchpriority="high" />
+
+      <div class="nf-body">
+        <h1 class="sr-only">{notFound.meta}</h1>
+
+        <div class="nf-chat">
+          <div class="kn-bubble kn-bubble--self nf-sent nf-in">
+            <span>{notFound.visitor.text}</span>
+            <span class="nf-ts">{notFound.visitor.time}<ReadTicks /></span>
+          </div>
+          <AdminThread class="nf-thread" messages={notFound.replies} eager />
+        </div>
+
+        <div class="nf-actions nf-in nf-d3">
+          <p class="nf-meta">{notFound.meta}</p>
+          <div class="nf-btns">
+            <a class="kn-btn kn-btn--primary kn-btn--lg" href={notFound.home.href}>{notFound.home.label}</a>
+            <a class="kn-btn kn-btn--outline kn-btn--lg" href={notFound.signup.href}>{notFound.signup.label}</a>
+          </div>
+        </div>
+      </div>
     </div>
   </main>
 
   <Footer />
 </BaseLayout>
+
+<style>
+  /* Tinggi satu layar dikurangi navbar (64px), konten di tengah */
+  .nf {
+    box-sizing: border-box;
+    min-height: calc(100svh - 64px);
+    display: flex;
+    align-items: center;
+    padding: 16px 16px 24px;
+  }
+  .nf-wrap {
+    width: 100%;
+    max-width: 880px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+  }
+  .nf-art {
+    display: block;
+    width: auto;
+    height: 200px;
+  }
+  .nf-body {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .nf-chat {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  /* Pesan terkirim pengunjung: gaya bubble "terkirim" hero (ungu, rata kanan, jam + centang) */
+  .nf-sent {
+    align-self: flex-end;
+    max-width: 88%;
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 10px 12px 8px 14px;
+    border-radius: 20px 20px 6px 20px;
+    font: 500 16px/24px var(--font-sans);
+  }
+  .nf-ts {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font: 500 12px/16px var(--font-sans);
+    color: #e6deff;
+  }
+
+  .nf-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .nf-meta {
+    margin: 0;
+    padding: 0 4px;
+    font: 500 14px/20px var(--font-sans);
+    color: var(--ink-muted);
+  }
+  .nf-btns {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .nf-btns .kn-btn {
+    width: 100%;
+  }
+
+  /* HP pendek (misalnya iPhone SE): ilustrasi dan jarak diperkecil supaya tetap muat satu layar */
+  @media (max-width: 767px) and (max-height: 740px) {
+    .nf {
+      padding-block: 8px 16px;
+    }
+    .nf-wrap {
+      gap: 10px;
+    }
+    .nf-art {
+      height: 140px;
+    }
+    .nf-body,
+    .nf-actions {
+      gap: 10px;
+    }
+    .nf-chat {
+      gap: 8px;
+    }
+    .nf-btns .kn-btn {
+      --h: 48px;
+    }
+  }
+
+  @media (min-width: 768px) {
+    .nf {
+      padding: 96px 32px 64px;
+    }
+    .nf-wrap {
+      flex-direction: row;
+      align-items: center;
+      gap: 56px;
+    }
+    .nf-art {
+      flex-shrink: 0;
+      width: 300px;
+      height: auto;
+    }
+    .nf-body {
+      flex: 1;
+      min-width: 0;
+      gap: 24px;
+    }
+    .nf-chat {
+      gap: 16px;
+    }
+    .nf-sent {
+      gap: 14px;
+      padding: 14px 18px 12px 22px;
+      border-radius: 22px 22px 6px 22px;
+      font-size: 18px;
+      line-height: 28px;
+    }
+    .nf-meta {
+      padding: 0;
+    }
+    .nf-btns {
+      flex-direction: row;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+    .nf-btns .kn-btn {
+      width: auto;
+    }
+  }
+
+  /*
+   * Muncul satu per satu (jeda 400ms), animasi pop yang sama dengan hero:
+   * pesan pengunjung → balasan 1 (dengan avatar dan nama) → balasan 2 → teks + tombol.
+   */
+  @media (prefers-reduced-motion: no-preference) {
+    .nf-in,
+    :global(.nf-thread .at-av),
+    :global(.nf-thread .at-name),
+    :global(.nf-thread .at-bubble) {
+      animation: nf-pop 0.38s cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
+    }
+    :global(.nf-thread .at-av),
+    :global(.nf-thread .at-name),
+    :global(.nf-thread .at-bubble:nth-of-type(1)) {
+      animation-delay: 0.4s;
+    }
+    :global(.nf-thread .at-bubble:nth-of-type(2)) {
+      animation-delay: 0.8s;
+    }
+    .nf-d3 {
+      animation-delay: 1.2s;
+    }
+  }
+  @keyframes nf-pop {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.97);
+    }
+  }
+</style>

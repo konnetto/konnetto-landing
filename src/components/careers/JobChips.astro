@@ -1,0 +1,74 @@
+---
+/**
+ * Chip info lowongan ("Freelance", "Remote", ...). Dipakai di card /karier dan di halaman detail,
+ * jadi isinya selalu sama persis (dari careers.ts). Chip pertama terisi pink, sisanya outline.
+ *
+ * Mobile (< 768px): satu baris yang bisa digeser horizontal, tanpa scrollbar. Supaya chip bisa
+ * digeser sampai tepi layar, beri `bleed` = padding horizontal pembungkusnya (px): baris chip
+ * melebar sejauh itu ke kiri-kanan, dengan padding yang sama di dalamnya.
+ * Desktop: chip membungkus ke baris baru kalau tidak muat.
+ */
+import type { JobTag } from '../../data/careers';
+
+interface Props {
+  tags: JobTag[];
+  /** "sm" untuk card di daftar, "md" untuk halaman detail. */
+  size?: 'sm' | 'md';
+  /** Padding horizontal pembungkus di mobile (px), lihat penjelasan di atas. */
+  bleed?: number;
+  class?: string;
+}
+
+const { tags, size = 'md', bleed = 0, class: className, ...rest } = Astro.props;
+---
+
+<ul class:list={['job-chips', `job-chips--${size}`, className]} aria-label="Info singkat" style={`--bleed: ${bleed}px`} {...rest}>
+  {tags.map((tag) => <li>{tag}</li>)}
+</ul>
+
+<style>
+  .job-chips {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .job-chips li {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: var(--radius-pill);
+    border: 1.5px solid #6f6199;
+    font: 700 15px/20px var(--font-sans);
+    color: var(--ink);
+    white-space: nowrap;
+  }
+  .job-chips li:first-child {
+    background: var(--tertiary);
+    border-color: var(--tertiary);
+    color: var(--on-tertiary);
+  }
+  .job-chips--sm li {
+    height: 34px;
+    padding: 0 14px;
+    font-size: 14px;
+  }
+
+  @media (max-width: 767px) {
+    .job-chips {
+      flex-wrap: nowrap;
+      overflow-x: auto;
+      margin-inline: calc(-1 * var(--bleed));
+      padding: 0 var(--bleed) 2px;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+    .job-chips::-webkit-scrollbar {
+      display: none;
+    }
+  }
+</style>

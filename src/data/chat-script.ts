@@ -64,9 +64,8 @@ export const chatConfig = {
   flyMs: 1000,
   /** Jam pesan pertama; tiap dua pesan, menit bertambah satu (21.04, 21.04, 21.05, ...). */
   startTime: { hour: 21, minute: 4 },
-  /** Label setelah fanart masuk mading. Emoji 📌 dari artboard. */
-  savedLabel: 'Masuk Mading',
-  savedEmoji: '📌',
+  /** Label setelah fanart masuk mading (dengan ikon pin, src/data/assets.ts → icons.pin). */
+  savedLabel: 'masuk mading',
   typingLabel: 'sedang mengetik...',
 } as const;
 

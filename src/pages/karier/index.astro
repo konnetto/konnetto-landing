@@ -1,0 +1,425 @@
+---
+/**
+ * /karier: daftar lowongan. Tampilan dari artboard Karier (desktop 1440) dan KarierMobile (390).
+ * Semua copy dan data lowongan ada di src/data/careers.ts.
+ *
+ *  - Hero: bubble pembuka dari akun admin, headline sebagai bubble "terkirim", lalu teks pendek.
+ *  - Daftar: satu card per lowongan; seluruh card adalah link ke /karier/<slug>.
+ *    Klik card dicatat di Umami (career-job-click, data: job = slug).
+ */
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Navbar from '../../components/Navbar.astro';
+import Footer from '../../components/sections/Footer.astro';
+import ReadTicks from '../../components/hero/ReadTicks.astro';
+import AdminThread from '../../components/careers/AdminThread.astro';
+import JobChips from '../../components/careers/JobChips.astro';
+import { nav } from '../../data/content';
+import { careersEmail, careersPage, jobs } from '../../data/careers';
+import { EVENTS } from '../../lib/analytics';
+
+// Link navbar menunjuk ke section di halaman utama.
+const links = nav.links.map((link) => ({ ...link, href: `/${link.href}` }));
+const cta = { ...nav.cta, href: `/${nav.cta.href}` };
+
+const page = careersPage;
+---
+
+<BaseLayout title={page.meta.title} description={page.meta.description}>
+  <Navbar links={links} cta={cta} homeHref="/" />
+
+  <main id="konten">
+    <!-- 1 · Hero: obrolan singkat dari admin -->
+    <section aria-labelledby="karier-heading" class="k-hero grain">
+      <div class="k-col k-hero__col">
+        <AdminThread class="k-in k-d1" messages={[page.greeting]} eager />
+
+        <div class="k-sent">
+          <div class="k-headline">
+            <h1 id="karier-heading" class="k-h1">
+              {
+                page.headlineLines.slice(0, -1).map((line) => (
+                  <>
+                    {line}
+                    <br class="br-desktop" />{' '}
+                  </>
+                ))
+              }
+              <span class="k-h1__accent">{page.headlineLines.at(-1)}</span>
+            </h1>
+            <span class="k-headline__ts">{page.headlineTime}<ReadTicks /></span>
+          </div>
+          <p class="k-lead k-in k-d3">{page.lead}</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2 · Daftar lowongan -->
+    <section id="lowongan" aria-labelledby="lowongan-heading" class="k-list-sec">
+      <div class="k-col k-list-sec__col">
+        <h2 id="lowongan-heading" class="k-list-title">
+          {page.listTitle}
+          <span class="k-count" aria-hidden="true">{jobs.length}</span>
+          <span class="sr-only">({jobs.length} lowongan)</span>
+        </h2>
+
+        <ul class="k-list">
+          {
+            jobs.map((job) => (
+              <li>
+                <a
+                  class="k-job"
+                  href={`/karier/${job.slug}`}
+                  aria-label={`${job.title}: lihat detail lowongan`}
+                  data-umami-event={EVENTS.careerJobClick}
+                  data-umami-event-job={job.slug}
+                >
+                  <div class="k-job__main">
+                    <h3 class="k-job__title">{job.title}</h3>
+                    <JobChips tags={job.tags} size="sm" bleed={18} />
+                    <p class="k-job__desc">{job.summary}</p>
+                  </div>
+                  <span class="k-job__foot">
+                    <span class="k-job__more">lihat detail</span>
+                    <span class="k-arrow" aria-hidden="true">
+                      <svg viewBox="0 0 24 24">
+                        <path d="M5 12h14M13 6l6 6-6 6" />
+                      </svg>
+                    </span>
+                  </span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+
+        <p class="k-note">
+          {page.footnote.before}{' '}
+          <a href={`mailto:${careersEmail}`} data-umami-event={EVENTS.careerEmailClick} data-umami-event-job="umum">{careersEmail}</a>{page.footnote.after}
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <Footer />
+</BaseLayout>
+
+<style>
+  /* ---------- Kerangka: kolom 960px di desktop, 16px dari tepi di mobile ---------- */
+  .k-col {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: calc(960px + 2 * 32px);
+    margin: 0 auto;
+    padding-inline: 16px;
+  }
+  @media (min-width: 768px) {
+    .k-col {
+      padding-inline: 32px;
+    }
+  }
+
+  /* ---------- Hero ---------- */
+  .k-hero {
+    padding: 24px 0 8px;
+  }
+  .k-hero__col {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+  /* Headline sebagai bubble "terkirim" (rata kanan) */
+  .k-sent {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 14px;
+  }
+  .k-headline {
+    box-sizing: border-box;
+    max-width: 86%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 16px 16px 10px 18px;
+    border-radius: 24px 24px 6px 24px;
+    background: var(--primary);
+    box-shadow: 3px 3px 0 var(--tertiary);
+  }
+  .k-h1 {
+    margin: 0;
+    font: 700 clamp(26px, 8vw, 34px) / 1.05 var(--font-display);
+    letter-spacing: -0.025em;
+    color: var(--on-primary);
+  }
+  .k-h1__accent {
+    color: var(--tertiary);
+    white-space: nowrap;
+  }
+  .br-desktop {
+    display: none;
+  }
+  .k-headline__ts {
+    align-self: flex-end;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font: 500 12px/16px var(--font-sans);
+    color: #e6deff;
+  }
+  .k-lead {
+    margin: 0;
+    padding: 0 4px;
+    font: 500 16px/24px var(--font-sans);
+    color: var(--ink-muted);
+  }
+
+  @media (min-width: 768px) {
+    .k-hero {
+      padding: 136px 0 72px;
+    }
+    .k-hero__col {
+      gap: 22px;
+    }
+    .k-sent {
+      gap: 16px;
+    }
+    .k-headline {
+      max-width: none;
+      gap: 10px;
+      padding: 36px 44px 18px;
+      border-radius: 44px 44px 10px 44px;
+      box-shadow: 8px 8px 0 var(--tertiary);
+    }
+    .k-h1 {
+      font-size: clamp(40px, 4.45vw, 64px);
+    }
+    .br-desktop {
+      display: inline;
+    }
+    .k-headline__ts {
+      gap: 6px;
+      font-size: 13px;
+    }
+    .k-lead {
+      max-width: 460px;
+      padding: 0;
+      text-align: right;
+    }
+  }
+
+  /* Animasi masuk (artboard): bubble admin, headline "pop", lalu teks. Reduced motion: langsung tampil. */
+  @media (prefers-reduced-motion: no-preference) {
+    .k-in {
+      animation: k-pop 0.38s cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
+    }
+    .k-d1 {
+      animation-delay: 0.15s;
+    }
+    .k-d3 {
+      animation-delay: 1.1s;
+    }
+    .k-headline {
+      transform-origin: 100% 100%;
+      animation: k-pop-big 0.7s cubic-bezier(0.2, 0.9, 0.25, 1.2) 0.6s both;
+    }
+  }
+  @keyframes k-pop {
+    from {
+      opacity: 0;
+      transform: translateY(12px) scale(0.97);
+    }
+  }
+  @keyframes k-pop-big {
+    0% {
+      opacity: 0;
+      transform: translateY(24px) scale(0.9);
+      box-shadow: 0 0 0 var(--tertiary);
+    }
+    60% {
+      opacity: 1;
+      transform: translateY(-3px) scale(1.03);
+    }
+  }
+
+  /* ---------- Daftar lowongan ---------- */
+  .k-list-sec {
+    padding: 32px 0;
+  }
+  .k-list-sec__col {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  .k-list-title {
+    margin: 0;
+    padding: 0 4px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font: 800 18px/24px var(--font-sans);
+    color: var(--ink);
+  }
+  .k-count {
+    display: inline-grid;
+    place-items: center;
+    min-width: 26px;
+    height: 26px;
+    padding: 0 8px;
+    box-sizing: border-box;
+    border-radius: var(--radius-pill);
+    background: var(--tertiary);
+    color: var(--on-tertiary);
+    font: 800 13px/1 var(--font-sans);
+  }
+  .k-list {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  /* Card: seluruhnya link. Mobile: bertumpuk + baris "lihat detail →". Desktop: panah di kanan. */
+  .k-job {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+    box-sizing: border-box;
+    padding: 20px 18px 18px;
+    border-radius: 26px 26px 26px 8px;
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    color: var(--ink);
+    text-decoration: none;
+    transition:
+      border-color 0.15s ease,
+      background-color 0.15s ease;
+  }
+  .k-job:hover {
+    border-color: var(--tertiary);
+    background: #1d1630;
+  }
+  .k-job:focus-visible {
+    outline: 2px solid var(--tertiary);
+    outline-offset: 3px;
+  }
+  .k-job__main {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+  .k-job__title {
+    margin: 0;
+    font: 700 21px/27px var(--font-display);
+    letter-spacing: -0.015em;
+    color: var(--ink);
+  }
+  .k-job__desc {
+    margin: 0;
+    font: 500 16px/24px var(--font-sans);
+    color: var(--ink-muted);
+  }
+  .k-job__foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    font: 700 16px/22px var(--font-sans);
+    color: var(--tertiary);
+  }
+  .k-arrow {
+    flex-shrink: 0;
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--paper);
+    color: #16121f;
+    transition:
+      transform 0.15s ease,
+      background-color 0.15s ease;
+  }
+  .k-arrow svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 2.2;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+  .k-job:hover .k-arrow {
+    transform: translateX(4px);
+    background: var(--tertiary);
+  }
+
+  .k-note {
+    margin: 0;
+    padding: 0 4px;
+    font: 500 16px/24px var(--font-sans);
+    color: var(--ink-muted);
+  }
+  .k-note a {
+    color: var(--tertiary);
+    text-decoration: none;
+    font-weight: 700;
+    /* Area tap 44px tanpa mengubah tinggi baris */
+    display: inline-block;
+    padding: 11px 0;
+    margin: -11px 0;
+  }
+  .k-note a:hover,
+  .k-note a:focus-visible {
+    text-decoration: underline;
+    text-underline-offset: 4px;
+  }
+
+  @media (min-width: 768px) {
+    .k-list-sec {
+      padding: 24px 0 96px;
+    }
+    .k-list-title,
+    .k-note {
+      padding: 0;
+    }
+    .k-job {
+      flex-direction: row;
+      align-items: center;
+      gap: 24px;
+      padding: 30px 32px 30px 36px;
+      border-radius: 30px 30px 30px 8px;
+    }
+    .k-job__title {
+      font-size: 26px;
+      line-height: 32px;
+    }
+    .k-job__desc {
+      font-size: 17px;
+      line-height: 26px;
+    }
+    .k-job__more {
+      display: none;
+    }
+    .k-arrow {
+      width: 56px;
+      height: 56px;
+    }
+    .k-arrow svg {
+      width: 24px;
+      height: 24px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .k-job,
+    .k-arrow {
+      transition: none;
+    }
+  }
+</style>
