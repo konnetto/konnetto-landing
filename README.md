@@ -77,7 +77,7 @@ Semua variabel berawalan `PUBLIC_` ikut ter-bundle ke JavaScript di browser, jad
 | `PUBLIC_UMAMI_WEBSITE_ID`      | tidak            | Kosongkan untuk mematikan analytics                             |
 | `PUBLIC_UMAMI_SCRIPT_URL`      | tidak            | Default `https://cloud.umami.is/script.js`. Ganti kalau self-host. |
 
-**Mode demo:** selama endpoint Formspree (atau ID Tally) belum diisi, form otomatis berjalan di mode demo. Form bisa dicoba dan pesan sukses tetap muncul, tapi data tidak dikirim ke mana pun (hanya dicatat di console browser). Di bawah form muncul tulisan "Mode demo", dan log build menampilkan peringatan. Isi endpoint sebelum rilis.
+**Mode demo:** selama endpoint Formspree (atau ID Tally) belum diisi, form otomatis berjalan di mode demo. Form bisa dicoba dan pesan sukses tetap muncul, tapi data tidak dikirim ke mana pun (hanya dicatat di console browser). Log build menampilkan peringatan. Isi endpoint sebelum rilis.
 
 Form selalu mengirim field tersembunyi `role` (`fans`/`creator`) dan `utm_source`. Kalau pakai Tally, buat keduanya sebagai *hidden fields* di form Tally.
 

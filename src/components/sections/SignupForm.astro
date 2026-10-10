@@ -22,8 +22,7 @@
  *  - Kirim via fetch tanpa pindah halaman; sukses: form diganti pesan terima kasih dan
  *    event analytics form-submit-fans / form-submit-creator; gagal: pesan error, isian tetap.
  *  - Tanpa JavaScript: form tetap terkirim lewat POST biasa (Formspree menampilkan halamannya sendiri).
- *  - Mode demo (endpoint belum diisi): alur kirim ditiru, data hanya dicatat di console, dan ada
- *    baris kecil "Mode demo" di bawah form supaya tidak lupa mengisi endpoint saat rilis.
+ *  - Mode demo (endpoint belum diisi): alur kirim ditiru dan data hanya dicatat di console.
  */
 import { formConfig } from '../../lib/config';
 import { ANCHORS, signup, type SignupRole } from '../../data/content';
@@ -129,7 +128,6 @@ const { fans, creator } = signup;
                         {signup.consent.before} <a href={signup.consent.terms.href}>{signup.consent.terms.label}</a> {signup.consent.between}{' '}
                         <a href={signup.consent.privacy.href}>{signup.consent.privacy.label}</a> {signup.consent.after}
                       </p>
-                      {isDemo && <p class="signup-demo span-2">{signup.status.demo}</p>}
                     </>
                   ) : (
                     <>
@@ -187,7 +185,6 @@ const { fans, creator } = signup;
                         {signup.consent.before} <a href={signup.consent.terms.href}>{signup.consent.terms.label}</a> {signup.consent.between}{' '}
                         <a href={signup.consent.privacy.href}>{signup.consent.privacy.label}</a> {signup.consent.after}
                       </p>
-                      {isDemo && <p class="signup-demo span-2">{signup.status.demo}</p>}
                       <p class="span-2 m-0 text-body text-on-primary">{creator.note}</p>
                     </>
                   )}
@@ -467,13 +464,6 @@ const { fans, creator } = signup;
   }
   .signup-consent a:hover {
     color: var(--tertiary);
-  }
-  /* Penanda mode demo (belum ada backend form) */
-  .signup-demo {
-    margin: 0;
-    font: 600 12px/16px var(--font-sans);
-    /* Bukan --tertiary (pink): di atas ungu kontrasnya hanya 4.2:1 */
-    color: var(--on-primary);
   }
   .signup-error {
     margin: 12px 0 0;

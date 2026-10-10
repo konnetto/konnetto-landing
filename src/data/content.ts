@@ -353,10 +353,7 @@ export const signup = {
   status: {
     sending: 'Mengirim...',
     error: 'Maaf, pendaftaranmu belum terkirim. Coba lagi sebentar lagi, ya.',
-    contactInvalid: 'Isi dengan alamat email atau nomor WhatsApp yang valid, ya.',
-    /** Hanya tampil di mode demo (belum ada backend form). */
-    demo: 'Mode demo: pendaftaran belum disimpan.',
-  },
+    contactInvalid: 'Isi dengan alamat email atau nomor WhatsApp yang valid, ya.',  },
 };
 
 // ---------------------------------------------------------------------------
