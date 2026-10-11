@@ -42,7 +42,7 @@ const user = getUser(message.userId);
 
       {
         message.kind === 'text' && (
-          <div class:list={['kn-bubble kn-bubble--other chat-bubble', message.bold && 'is-bold']} data-slot="bubble">
+          <div class="kn-bubble kn-bubble--other chat-bubble" data-slot="bubble">
             <span data-slot="text">{message.text}</span>
             <span class="chat-ts" data-slot="time">{time}</span>
           </div>
@@ -158,21 +158,16 @@ const user = getUser(message.userId);
   }
   .chat-name {
     padding: 0 6px;
-    font: 700 14px/18px var(--font-sans);
-    letter-spacing: 0.01em;
+    font: var(--chat-name-weight) var(--chat-name-size) / var(--chat-meta-leading) var(--font-accent);
   }
 
   .chat-bubble {
     display: flex;
     align-items: flex-end;
     gap: 10px;
-    padding: 9px 12px 8px 14px;
-    font-size: 16px;
-    line-height: 23px;
-    font-weight: 500;
-  }
-  .chat-bubble.is-bold {
-    font-weight: 800;
+    padding: var(--bubble-pad-y) var(--bubble-pad-x);
+    font: var(--chat-text-weight) var(--chat-text-size) / var(--chat-text-leading) var(--font-chat);
+    letter-spacing: var(--chat-text-tracking);
   }
 
   /* Post fanart di dalam bubble */
@@ -206,9 +201,9 @@ const user = getUser(message.userId);
     display: flex;
     flex-direction: column;
     gap: 6px;
-    padding: 9px 12px 8px 14px;
-    font-size: 16px;
-    line-height: 23px;
+    padding: var(--bubble-pad-y) var(--bubble-pad-x);
+    font: var(--chat-text-weight) var(--chat-text-size) / var(--chat-text-leading) var(--font-chat);
+    letter-spacing: var(--chat-text-tracking);
   }
   .chat-post-line {
     display: flex;
@@ -220,7 +215,7 @@ const user = getUser(message.userId);
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font: 600 12px/16px var(--font-sans);
+    font: var(--chat-label-weight) var(--post-meta-size) / var(--chat-meta-leading) var(--font-chat);
     color: rgb(245 180 207 / 0.85); /* --tertiary, 85% */
   }
   .chat-saved[hidden] {
@@ -297,17 +292,9 @@ const user = getUser(message.userId);
     .chat-bubble {
       max-width: 560px;
       gap: 14px;
-      padding: 14px 18px 12px 22px;
-      font-size: 19px;
-      line-height: 28px;
     }
     .chat-post {
       width: 360px;
-    }
-    .chat-post-body {
-      padding: 14px 18px 12px 22px;
-      font-size: 19px;
-      line-height: 28px;
     }
     .chat-post-line {
       gap: 14px;

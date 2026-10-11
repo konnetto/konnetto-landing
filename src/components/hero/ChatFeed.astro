@@ -139,8 +139,7 @@ function sampleOf<K extends ChatMessageData['kind']>(kind: K) {
   }
   .typing-name {
     padding: 0 6px;
-    font: 700 14px/18px var(--font-sans);
-    letter-spacing: 0.01em;
+    font: var(--chat-name-weight) var(--chat-name-size) / var(--chat-meta-leading) var(--font-accent);
   }
   .typing-line {
     display: flex;
@@ -181,7 +180,7 @@ function sampleOf<K extends ChatMessageData['kind']>(kind: K) {
     }
   }
   .typing-label {
-    font: 500 14px/20px var(--font-sans);
+    font: var(--post-meta-weight) var(--post-meta-size) / var(--chat-meta-leading) var(--font-chat);
     color: var(--ink-muted);
   }
 
@@ -205,7 +204,7 @@ function sampleOf<K extends ChatMessageData['kind']>(kind: K) {
     border: 1px solid var(--secondary);
     background: var(--primary-soft);
     color: var(--ink);
-    font: 700 12px/1 var(--font-sans);
+    font: var(--chat-label-weight) var(--post-meta-size) / var(--chat-meta-leading) var(--font-chat);
     cursor: pointer;
   }
   .pause-chip svg {
@@ -248,10 +247,6 @@ function sampleOf<K extends ChatMessageData['kind']>(kind: K) {
       gap: 6px;
       padding: 16px 20px;
       border-radius: 22px 22px 22px 6px;
-    }
-    .typing-label {
-      font-size: 16px;
-      line-height: 22px;
     }
   }
 </style>
@@ -330,7 +325,6 @@ function sampleOf<K extends ChatMessageData['kind']>(kind: K) {
 
       if (message.kind === 'text') {
         slot(row, 'text')!.textContent = message.text;
-        slot(row, 'bubble')!.classList.toggle('is-bold', !!message.bold);
       } else if (message.kind === 'fanart') {
         const img = slot<HTMLImageElement>(row, 'image')!;
         img.srcset = imageSrcset(message.image);

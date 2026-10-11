@@ -97,14 +97,13 @@ const { reactions, targetId, authorId } = Astro.props;
   .react b {
     display: inline-block;
     min-width: 14px;
-    font: 600 15px/1 var(--font-sans);
+    font: var(--chat-react-weight) var(--chat-react-size) / var(--chat-meta-leading) var(--font-chat);
     font-variant-numeric: tabular-nums;
     color: rgb(249 249 249 / 0.8);
   }
-  /* Kamu ikut bereaksi: angka pink tebal */
+  /* Kamu ikut bereaksi: angka pink */
   .react[aria-pressed='true'] b {
     color: var(--accent-pink);
-    font-weight: 800;
   }
 
   /* Klik: sticker "pop" dan angka naik */
@@ -201,10 +200,11 @@ const { reactions, targetId, authorId } = Astro.props;
     top: -7px;
     border-radius: 0;
     background: none;
-    font: 800 12px/1 'Noto Sans Symbols 2', 'Segoe UI Symbol', sans-serif;
+    /* Partikel efek klik (bukan teks): ukuran glyph = ukuran partikel */
+    font: 800 12px/1 var(--font-symbol);
   }
   .react-fx .spark {
-    font: 800 14px/1 var(--font-sans);
+    font: 800 14px/1 var(--font-chat);
   }
   @keyframes fx-pt {
     0% {

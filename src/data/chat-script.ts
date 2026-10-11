@@ -25,8 +25,6 @@ interface BaseMessage {
 export interface TextMessage extends BaseMessage {
   kind: 'text';
   text: string;
-  /** Teks tebal (dipakai untuk pesan "teriak"). */
-  bold?: boolean;
 }
 
 /** Sticker besar sebagai pesan (tanpa teks). */
@@ -84,7 +82,6 @@ export const chatScript: ChatMessage[] = [
     kind: 'text',
     userId: 'bukanwibu_sumpah',
     text: 'AAAA JANGAN SPOILER GW BARU NYAMPE RUMAH',
-    bold: true,
     reactions: [
       { stickerId: 'wkwkwk', count: 17 },
       { stickerId: 'spoiler', count: 5 },

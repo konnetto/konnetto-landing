@@ -169,14 +169,15 @@ const captionParts = caption.split(/(:[a-z0-9_]+:)/).map((part) => {
     align-items: center;
     gap: 4px;
     min-width: 0;
-    font: 500 13px/18px var(--font-sans);
+    /* Keterangan "di Konnetto · baru saja" */
+    font: var(--post-meta-weight) var(--post-meta-size) / var(--chat-meta-leading) var(--font-chat);
     color: var(--ink-muted);
   }
   .md-name {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    font-weight: 700;
+    font: var(--post-author-weight) var(--post-author-size) / var(--chat-meta-leading) var(--font-chat);
     color: var(--ink);
   }
   .md-meta {
@@ -207,14 +208,12 @@ const captionParts = caption.split(/(:[a-z0-9_]+:)/).map((part) => {
     order: 2;
     margin: 0;
     padding: 0 2px;
-    font: 500 16px/23px var(--font-sans);
+    font: var(--chat-text-weight) var(--chat-text-size) / var(--chat-text-leading) var(--font-chat);
+    letter-spacing: var(--chat-text-tracking);
   }
   /* Post teks: caption tampil penuh, tanpa gambar */
   .md-cap--text {
     order: 0;
-    font-size: 17px;
-    line-height: 25px;
-    font-weight: 600;
   }
   /* Kartu slot ajakan */
   .md-slot {
@@ -347,13 +346,6 @@ const captionParts = caption.split(/(:[a-z0-9_]+:)/).map((part) => {
     }
     .md-name {
       max-width: 100%;
-      font-size: 15px;
-      line-height: 20px;
-    }
-    .md-meta {
-      font-size: 12px;
-      line-height: 16px;
-      color: #cfc8e0;
     }
     .md-community {
       display: inline;
@@ -375,15 +367,14 @@ const captionParts = caption.split(/(:[a-z0-9_]+:)/).map((part) => {
     .md-cap--text {
       order: 1;
     }
+    /* Caption 2 baris: tinggi = 2 x line-height */
     .md-cap:not(.md-cap--text) {
-      height: 48px;
+      height: calc(2em * var(--chat-text-leading));
       padding: 0;
       overflow: hidden;
       display: -webkit-box;
       -webkit-line-clamp: 2;
       -webkit-box-orient: vertical;
-      font-size: 16px;
-      line-height: 24px;
     }
     .md-card :global([data-reactions]) {
       column-gap: 16px;

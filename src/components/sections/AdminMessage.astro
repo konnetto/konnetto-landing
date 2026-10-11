@@ -87,7 +87,7 @@ const restMessages = adminMessage.messages.slice(adminMessage.mobileVisible);
   }
   .team-name {
     padding: 0 6px;
-    font: 700 13px/18px var(--font-sans);
+    font: var(--chat-name-weight) var(--chat-name-size) / var(--chat-meta-leading) var(--font-accent);
     color: var(--accent);
   }
   .tb {
@@ -95,10 +95,10 @@ const restMessages = adminMessage.messages.slice(adminMessage.mobileVisible);
     display: flex;
     align-items: flex-end;
     gap: 10px;
-    padding: 10px 12px 8px 14px;
+    padding: var(--bubble-pad-y) var(--bubble-pad-x);
     border-bottom-left-radius: 18px;
-    font-size: 16px;
-    line-height: 24px;
+    font: var(--chat-text-weight) var(--chat-text-size) / var(--chat-text-leading) var(--font-chat);
+    letter-spacing: var(--chat-text-tracking);
   }
   .team-rest {
     display: flex;
@@ -184,16 +184,9 @@ const restMessages = adminMessage.messages.slice(adminMessage.mobileVisible);
       width: 48px;
       height: 48px;
     }
-    .team-name {
-      font-size: 15px;
-      line-height: 20px;
-    }
     .tb {
       gap: 14px;
-      padding: 14px 18px 12px 22px;
       border-bottom-left-radius: 20px;
-      font-size: 18px;
-      line-height: 28px;
     }
     /* Desktop: semua bubble tampil, tanpa tombol "lanjut baca" */
     .team-rest--collapsed {

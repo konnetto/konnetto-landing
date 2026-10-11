@@ -53,6 +53,19 @@
   unicode-range: U+30B3, U+30CD, U+30C3, U+30C8;
 }
 
+/*
+ * M PLUS Rounded 1c Bold, huruf latin saja (Google Fonts, subset latin): font-accent untuk nama
+ * pengguna di chat, Mading, dan popup reaksi. ~23KB, tidak di-preload (font-display: swap).
+ */
+@font-face {
+  font-family: "M PLUS Rounded 1c";
+  src: url("/fonts/MPLUSRounded1c-Bold-latin.woff2") format("woff2");
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
 /* ---------------------------------------------------------------------------
  * Tailwind theme
  *
@@ -73,6 +86,10 @@
   --font-jp: "M PLUS Rounded 1c", "Plus Jakarta Sans", system-ui, sans-serif;
   /* Untuk emoji yang memang ada di copy artboard */
   --font-emoji: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", sans-serif;
+  /* Tipografi chat (lihat token --chat-* di bawah): teks pesan, nama pengguna, simbol ✧ ♡ ☆ */
+  --font-chat: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Noto Sans", "Helvetica Neue", Arial, sans-serif;
+  --font-accent: "M PLUS Rounded 1c", sans-serif;
+  --font-symbol: "Noto Sans Symbols 2", "Segoe UI Symbol", "Apple Symbols", "DejaVu Sans", sans-serif;
 
   /*
    * Skala tipografi design system → class text-<nama>.
@@ -185,6 +202,45 @@
 }
 
 /*
+ * Tipografi chat: chat hero, post dan kartu Mading, bubble pesan admin di hero, popup reaksi,
+ * caption lightbox. Komponen-komponen itu hanya memakai token ini (tidak ada ukuran, ketebalan,
+ * atau font yang ditulis langsung), supaya terasa seperti aplikasi chat sungguhan: font sistem,
+ * ketebalan normal, bubble rapat. Headline dan judul section tidak memakai token ini.
+ */
+:root {
+  /* Teks pesan dan caption post. Pesan berhuruf kapital tetap 400 (tidak ditebalkan). */
+  --chat-text-size: 15px;
+  --chat-text-weight: 400;
+  --chat-text-leading: 1.45;
+  --chat-text-tracking: 0;
+  /* Nama pengguna (font-accent) */
+  --chat-name-size: 13px;
+  --chat-name-weight: 700;
+  /* Kepala post: nama akun (font-chat) dan keterangan "di Konnetto · baru saja" */
+  --post-author-size: 14px;
+  --post-author-weight: 600;
+  --post-meta-size: 12px;
+  --post-meta-weight: 400;
+  /* Teks kecil (nama, keterangan, jam, label) */
+  --chat-meta-leading: 1.35;
+  /* Jam pesan */
+  --chat-time-size: 11px;
+  /* Angka reaksi */
+  --chat-react-size: 13px;
+  --chat-react-weight: 500;
+  /* Label kecil: badge di popup reaksi, "masuk mading", chip "Dijeda" */
+  --chat-badge-size: 10px;
+  --chat-label-weight: 600;
+  /* Padding bubble pesan */
+  --bubble-pad-y: 8px;
+  --bubble-pad-x: 12px;
+
+  @media (width >= 1100px) {
+    --chat-text-size: 16px;
+  }
+}
+
+/*
  * Wrapper konten: gutter 20px (mobile, artboard Versi B; design system menyebut 16px),
  * 32px (768px+), 80px (1100px+); maksimal 1440px.
  */
@@ -261,17 +317,20 @@
   }
 }
 
-/* Jam kecil di pojok bubble chat. #CFC8E0 dari artboard (tidak ada di token). */
+/* Jam kecil di pojok bubble chat (token --chat-*) */
 @utility chat-ts {
   flex-shrink: 0;
   align-self: flex-end;
-  font: 500 11px/14px var(--font-sans);
-  color: #cfc8e0;
+  font: var(--chat-text-weight) var(--chat-time-size) / var(--chat-meta-leading) var(--font-chat);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
   white-space: nowrap;
-  @media (width >= 1100px) {
-    font-size: 12px;
-    line-height: 16px;
-  }
+}
+
+/* Teks pesan chat (token --chat-*), untuk markup yang memakai class Tailwind (bubble admin di hero) */
+@utility chat-text {
+  font: var(--chat-text-weight) var(--chat-text-size) / var(--chat-text-leading) var(--font-chat);
+  letter-spacing: var(--chat-text-tracking);
 }
 
 /* Grain halus, dipakai di hero (sesuai artboard: hanya di area hero, bukan seluruh halaman). */

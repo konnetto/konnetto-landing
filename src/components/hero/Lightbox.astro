@@ -158,13 +158,14 @@
     padding: 10px 16px;
     border-radius: 14px;
     background: rgb(15 11 26 / 0.78);
-    font: 500 14px/20px var(--font-sans);
+    font: var(--chat-text-weight) var(--chat-text-size) / var(--chat-text-leading) var(--font-chat);
+    letter-spacing: var(--chat-text-tracking);
     transform: translateX(-50%);
     transition: opacity 0.2s ease;
   }
   .lb-cap b {
     flex-shrink: 0;
-    font-weight: 800;
+    font: var(--chat-name-weight) var(--chat-name-size) / var(--chat-meta-leading) var(--font-accent);
     color: var(--accent);
   }
   .lb-cap span {

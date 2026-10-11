@@ -18,8 +18,8 @@ const { pre, sym, post } = splitUsername(Astro.props.name);
 <!-- is:global: ChatFeed juga membuat span ini lewat JavaScript, jadi style tidak boleh scoped. -->
 <style is:global>
   .username-sym {
-    font-family: 'Noto Sans Symbols 2', 'Segoe UI Symbol', 'Apple Symbols', 'DejaVu Sans', sans-serif;
-    font-weight: 400;
+    font-family: var(--font-symbol);
+    font-weight: var(--chat-text-weight);
     margin: 0 1px;
   }
 </style>
